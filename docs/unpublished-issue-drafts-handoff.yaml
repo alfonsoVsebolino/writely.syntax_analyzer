@@ -1,0 +1,256 @@
+handoff:
+  generated_for:
+    repository: "alfonsoVsebolino/writely.syntax_analyzer"
+    repository_id: 1407488522
+    generated_on: "2026-10-06"
+    purpose: "Portable handoff of approved issue drafts that remain unpublished"
+  publication_status:
+    unpublished_draft_count: 6
+    all_should_remain_open_when_published: true
+    agent_publication_attempt: "failed_to_start"
+  exclusions:
+    - tag: "ticket-java-core-foundation"
+      reason: "Explicitly excluded by user"
+    - tag: "ticket-java-parser-adapter"
+      reason: "Already published as issue #5"
+    - tag: "ticket-tokenization-source-locations"
+      reason: "Already published as issue #6"
+    - tag: "ticket-multimodal-ingestion"
+      reason: "Already published as issue #8"
+    - tag: "ticket-analysis-domain-model"
+      reason: "Already published as issue #10"
+    - tag: "ticket-report-export"
+      reason: "Already published as issue #13"
+    - tag: "ticket-gui-analysis-results"
+      reason: "Already published as issue #15"
+
+  published_issue_references:
+    - number: 1
+      title: "Complete documentation and oral-defense materials"
+    - number: 2
+      title: "Establish Java desktop application core"
+    - number: 3
+      title: "Implement Java parser adapter"
+      note: "Duplicate published issue created before issue #5"
+    - number: 4
+      title: "Implement Python parser adapter"
+    - number: 5
+      title: "Implement Java parser adapter"
+    - number: 6
+      title: "Implement tokenization and source-location tracking"
+    - number: 7
+      title: "Build Java desktop GUI shell and workspace"
+    - number: 8
+      title: "Implement multi-modal source ingestion"
+    - number: 9
+      title: "Define parser adapter contract and registry"
+    - number: 10
+      title: "Define shared analysis domain model"
+    - number: 11
+      title: "Harden desktop delivery and offline safety"
+    - number: 12
+      title: "Build cross-language fixtures and regression tests"
+    - number: 13
+      title: "Implement text and JSON report export"
+    - number: 14
+      title: "Add token and syntax-tree inspection views"
+    - number: 15
+      title: "Integrate analysis results into the desktop GUI"
+    - number: 16
+      title: "Build diagnostic aggregation and analysis summaries"
+    - number: 17
+      title: "Implement identifier syntax checks"
+
+  unpublished_drafts:
+    - tag: "ticket-cpp-parser-adapter"
+      issue_number: null
+      repository: "alfonsoVsebolino/writely.syntax_analyzer"
+      state: "draft"
+      title: "Implement C++ parser adapter"
+      planned_predecessors:
+        - issue_number: 6
+          title: "Implement tokenization and source-location tracking"
+          original_dependency_tag: "ticket-tokenization-source-locations"
+        - issue_number: 9
+          title: "Define parser adapter contract and registry"
+          original_dependency_tag: "ticket-parser-adapter-contract"
+      planned_downstream_work:
+        - issue_number: 12
+          title: "Build cross-language fixtures and regression tests"
+        - issue_number: 14
+          title: "Add token and syntax-tree inspection views"
+        - draft_tag: "ticket-terminator-block-check"
+        - draft_tag: "ticket-operator-check"
+        - draft_tag: "ticket-control-header-check"
+      exact_contents:
+        overview: |
+          Implement the C++ language adapter using the agreed initial C++ baseline.
+
+          Initial coverage includes includes, namespaces, classes and structs, functions, variable declarations, conditionals, loops, expressions, and basic templates.
+        scope_provisions:
+          - "Document the supported C++ standard."
+          - "Document preprocessing and macro limitations."
+          - "Do not execute analyzed code."
+          - "Return useful diagnostics for incomplete or malformed source."
+          - "Include valid and invalid C++ fixtures."
+      issue_type: "feature"
+
+    - tag: "ticket-delimiter-check"
+      issue_number: null
+      repository: "alfonsoVsebolino/writely.syntax_analyzer"
+      state: "draft"
+      title: "Implement delimiter and bracket matching"
+      planned_predecessors:
+        - issue_number: 6
+          title: "Implement tokenization and source-location tracking"
+          original_dependency_tag: "ticket-tokenization-source-locations"
+      planned_downstream_work:
+        - issue_number: 16
+          title: "Build diagnostic aggregation and analysis summaries"
+        - issue_number: 12
+          title: "Build cross-language fixtures and regression tests"
+      exact_contents:
+        overview: |
+          Implement language-aware delimiter and bracket matching for parentheses, square brackets, and curly braces.
+        scope_provisions:
+          - "Detect unclosed, unexpected, and mismatched delimiters."
+          - "Ignore delimiters inside comments and string or character literals."
+          - "Support Java, Python, and C++ rules."
+          - "Report expected and observed delimiters where possible."
+          - "Add nested and malformed-input tests."
+      issue_type: "feature"
+
+    - tag: "ticket-literal-check"
+      issue_number: null
+      repository: "alfonsoVsebolino/writely.syntax_analyzer"
+      state: "draft"
+      title: "Implement string and character literal checks"
+      planned_predecessors:
+        - issue_number: 6
+          title: "Implement tokenization and source-location tracking"
+          original_dependency_tag: "ticket-tokenization-source-locations"
+      planned_downstream_work:
+        - issue_number: 16
+          title: "Build diagnostic aggregation and analysis summaries"
+        - issue_number: 12
+          title: "Build cross-language fixtures and regression tests"
+      exact_contents:
+        overview: |
+          Implement language-aware validation for string and character literals.
+
+          Detect unclosed literals and malformed literal boundaries while respecting Python triple-quoted strings, Java character literals, and C++ raw or prefixed literal forms within the documented scope.
+        scope_provisions:
+          - "Report literal type and source location."
+          - "Ignore code-like characters contained inside literals."
+          - "Handle escaped quotes according to each language."
+          - "Keep unsupported literal forms explicit."
+          - "Add positive and negative fixtures for all three languages."
+      issue_type: "feature"
+
+    - tag: "ticket-terminator-block-check"
+      issue_number: null
+      repository: "alfonsoVsebolino/writely.syntax_analyzer"
+      state: "draft"
+      title: "Implement statement terminator and block checks"
+      planned_predecessors:
+        - issue_number: 5
+          title: "Implement Java parser adapter"
+          original_dependency_tag: "ticket-java-parser-adapter"
+        - issue_number: 4
+          title: "Implement Python parser adapter"
+          original_dependency_tag: "ticket-python-parser-adapter"
+        - draft_tag: "ticket-cpp-parser-adapter"
+          title: "Implement C++ parser adapter"
+      planned_downstream_work:
+        - issue_number: 16
+          title: "Build diagnostic aggregation and analysis summaries"
+        - issue_number: 12
+          title: "Build cross-language fixtures and regression tests"
+      exact_contents:
+        overview: |
+          Implement statement-termination and block-syntax checks with language-specific behavior.
+
+          Java and C++ require semicolon validation in applicable contexts, while Python requires indentation and colons for relevant compound-statement headers.
+        scope_provisions:
+          - "Do not apply a universal semicolon rule."
+          - "Cover Java and C++ terminators within parser-supported contexts."
+          - "Cover Python missing-colon, indentation, unexpected-indentation, and dedentation cases."
+          - "Avoid duplicate or misleading findings."
+          - "Include language-specific fixtures and documented limitations."
+      issue_type: "feature"
+
+    - tag: "ticket-operator-check"
+      issue_number: null
+      repository: "alfonsoVsebolino/writely.syntax_analyzer"
+      state: "draft"
+      title: "Implement operator syntax checks"
+      planned_predecessors:
+        - issue_number: 6
+          title: "Implement tokenization and source-location tracking"
+          original_dependency_tag: "ticket-tokenization-source-locations"
+        - issue_number: 5
+          title: "Implement Java parser adapter"
+          original_dependency_tag: "ticket-java-parser-adapter"
+        - issue_number: 4
+          title: "Implement Python parser adapter"
+          original_dependency_tag: "ticket-python-parser-adapter"
+        - draft_tag: "ticket-cpp-parser-adapter"
+          title: "Implement C++ parser adapter"
+      planned_downstream_work:
+        - issue_number: 16
+          title: "Build diagnostic aggregation and analysis summaries"
+        - issue_number: 12
+          title: "Build cross-language fixtures and regression tests"
+      exact_contents:
+        overview: |
+          Implement language-aware operator validation for missing operands and invalid consecutive operator sequences.
+
+          The check must distinguish invalid sequences such as `+ *` from valid unary, shift, comparison, and language-specific operator forms.
+        scope_provisions:
+          - "Support Java, Python, and C++ operator tables."
+          - "Avoid false positives for valid unary operators."
+          - "Report the operator sequence and source span."
+          - "Include invalid and valid unary-expression fixtures."
+          - "Keep semantic type compatibility outside this ticket."
+      issue_type: "feature"
+
+    - tag: "ticket-control-header-check"
+      issue_number: null
+      repository: "alfonsoVsebolino/writely.syntax_analyzer"
+      state: "draft"
+      title: "Implement control-structure header checks"
+      planned_predecessors:
+        - issue_number: 5
+          title: "Implement Java parser adapter"
+          original_dependency_tag: "ticket-java-parser-adapter"
+        - issue_number: 4
+          title: "Implement Python parser adapter"
+          original_dependency_tag: "ticket-python-parser-adapter"
+        - draft_tag: "ticket-cpp-parser-adapter"
+          title: "Implement C++ parser adapter"
+      planned_downstream_work:
+        - issue_number: 16
+          title: "Build diagnostic aggregation and analysis summaries"
+        - issue_number: 12
+          title: "Build cross-language fixtures and regression tests"
+      exact_contents:
+        overview: |
+          Implement structural validation and categorization for control-structure headers.
+
+          Cover `if`, `for`, `while`, `switch`, `try`, and language-specific equivalents such as Python `elif`, `except`, `finally`, and `match` within the selected baseline.
+        scope_provisions:
+          - "Use parser structure where available instead of regex-only validation."
+          - "Produce language-specific explanations."
+          - "Detect malformed headers, missing Python colons, and mismatched Java/C++ delimiters."
+          - "Continue after recoverable header errors."
+          - "Exclude semantic control-flow analysis."
+      issue_type: "feature"
+
+  publication_instructions:
+    - "Create only the six entries under unpublished_drafts."
+    - "Keep every resulting GitHub issue open."
+    - "Do not recreate or modify already-published issues."
+    - "Do not publish ticket-java-core-foundation."
+    - "Do not recreate drafts whose tags are listed under exclusions."
+    - "Treat planned_predecessors and planned_downstream_work as dependency guidance only."
+    - "If dependency attachment fails, publish the issue without claiming the dependency was attached."
