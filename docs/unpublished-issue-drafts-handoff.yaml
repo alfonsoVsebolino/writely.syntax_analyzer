@@ -5,9 +5,9 @@ handoff:
     generated_on: "2026-10-06"
     purpose: "Portable handoff of approved issue drafts that remain unpublished"
   publication_status:
-    unpublished_draft_count: 6
+    unpublished_draft_count: 0
     all_should_remain_open_when_published: true
-    agent_publication_attempt: "failed_to_start"
+    agent_publication_attempt: "success"
   exclusions:
     - tag: "ticket-java-core-foundation"
       reason: "Explicitly excluded by user"
@@ -60,12 +60,24 @@ handoff:
       title: "Build diagnostic aggregation and analysis summaries"
     - number: 17
       title: "Implement identifier syntax checks"
+    - number: 18
+      title: "Implement C++ parser adapter"
+    - number: 19
+      title: "Implement delimiter and bracket matching"
+    - number: 20
+      title: "Implement string and character literal checks"
+    - number: 21
+      title: "Implement statement terminator and block checks"
+    - number: 22
+      title: "Implement operator syntax checks"
+    - number: 23
+      title: "Implement control-structure header checks"
 
   unpublished_drafts:
     - tag: "ticket-cpp-parser-adapter"
-      issue_number: null
+      issue_number: 18
       repository: "alfonsoVsebolino/writely.syntax_analyzer"
-      state: "draft"
+      state: "published"
       title: "Implement C++ parser adapter"
       planned_predecessors:
         - issue_number: 6
@@ -96,9 +108,9 @@ handoff:
       issue_type: "feature"
 
     - tag: "ticket-delimiter-check"
-      issue_number: null
+      issue_number: 19
       repository: "alfonsoVsebolino/writely.syntax_analyzer"
-      state: "draft"
+      state: "published"
       title: "Implement delimiter and bracket matching"
       planned_predecessors:
         - issue_number: 6
@@ -121,9 +133,9 @@ handoff:
       issue_type: "feature"
 
     - tag: "ticket-literal-check"
-      issue_number: null
+      issue_number: 20
       repository: "alfonsoVsebolino/writely.syntax_analyzer"
-      state: "draft"
+      state: "published"
       title: "Implement string and character literal checks"
       planned_predecessors:
         - issue_number: 6
@@ -148,9 +160,9 @@ handoff:
       issue_type: "feature"
 
     - tag: "ticket-terminator-block-check"
-      issue_number: null
+      issue_number: 21
       repository: "alfonsoVsebolino/writely.syntax_analyzer"
-      state: "draft"
+      state: "published"
       title: "Implement statement terminator and block checks"
       planned_predecessors:
         - issue_number: 5
@@ -180,9 +192,9 @@ handoff:
       issue_type: "feature"
 
     - tag: "ticket-operator-check"
-      issue_number: null
+      issue_number: 22
       repository: "alfonsoVsebolino/writely.syntax_analyzer"
-      state: "draft"
+      state: "published"
       title: "Implement operator syntax checks"
       planned_predecessors:
         - issue_number: 6
@@ -215,9 +227,9 @@ handoff:
       issue_type: "feature"
 
     - tag: "ticket-control-header-check"
-      issue_number: null
+      issue_number: 23
       repository: "alfonsoVsebolino/writely.syntax_analyzer"
-      state: "draft"
+      state: "published"
       title: "Implement control-structure header checks"
       planned_predecessors:
         - issue_number: 5
