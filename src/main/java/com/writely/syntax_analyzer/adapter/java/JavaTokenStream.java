@@ -149,7 +149,9 @@ public class JavaTokenStream {
 
         // Recovery: if expecting semicolon or delimiter and current token is a boundary, do not consume it
         if (";".equals(expectedLexeme)) {
-            if (!hasMore() || check("}") || check(";") || isStatementStarter(peek())) {
+            if (!hasMore() || check("}") || check(";") || isStatementStarter(peek())
+                || (hasMore() && peek().startLocation().line() > loc.line())
+                || (hasMore() && isPossibleStatementStart(peek()))) {
                 return syntheticToken(expectedLexeme, loc);
             }
         } else if (")".equals(expectedLexeme) || "}".equals(expectedLexeme) || "]".equals(expectedLexeme)) {
@@ -244,6 +246,17 @@ public class JavaTokenStream {
 
     private boolean isStatementStarter(Token t) {
         return t.tokenType() == TokenType.KEYWORD && STATEMENT_STARTERS.contains(t.lexeme());
+    }
+
+    private boolean isPossibleStatementStart(Token t) {
+        if (t.tokenType() == TokenType.IDENTIFIER) {
+            Token next = peek(1);
+            String nextLex = next.lexeme();
+            return "=".equals(nextLex) || "+=".equals(nextLex) || "-=".equals(nextLex)
+                || "*=".equals(nextLex) || "/=".equals(nextLex) || "(".equals(nextLex)
+                || ".".equals(nextLex) || next.tokenType() == TokenType.IDENTIFIER;
+        }
+        return false;
     }
 
     private Token eofToken() {

@@ -125,8 +125,8 @@ public class CppParser {
             return parseTemplate();
         }
 
-        // 5. Classes and Structs
-        if (stream.check("class") || stream.check("struct")) {
+        // 5. Classes, Structs, and Enums
+        if (stream.check("class") || stream.check("struct") || stream.check("enum")) {
             return parseClassOrStruct();
         }
 
@@ -254,8 +254,12 @@ public class CppParser {
 
     private CppAstNode parseClassOrStruct() {
         SourceLocation start = stream.location();
-        Token kindTok = stream.consume(); // "class" or "struct"
+        Token kindTok = stream.consume(); // "class", "struct", or "enum"
         String kind = kindTok.lexeme();
+
+        if ("enum".equals(kind) && (stream.check("class") || stream.check("struct"))) {
+            kind = "enum " + stream.consume().lexeme();
+        }
 
         String name = "";
         if (stream.check(TokenType.IDENTIFIER)) {
@@ -278,11 +282,23 @@ public class CppParser {
             return new CppClass(name, kind, baseClasses, List.of(), false, SourceSpan.of(start, stream.lastLocation()));
         }
 
-        List<CppAstNode> members = parseClassMembers(name);
+        List<CppAstNode> members;
+        if (kind.startsWith("enum")) {
+            members = parseEnumMembers();
+        } else {
+            members = parseClassMembers(name);
+        }
         expectCloseBrace();
         expectSemicolon("Missing ';' after " + kind + " declaration");
 
         return new CppClass(name, kind, baseClasses, members, false, SourceSpan.of(start, stream.lastLocation()));
+    }
+
+    private List<CppAstNode> parseEnumMembers() {
+        while (!stream.check("}") && !stream.isAtEnd()) {
+            stream.consume();
+        }
+        return List.of();
     }
 
     private List<String> parseBaseClause() {

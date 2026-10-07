@@ -496,7 +496,7 @@ public class JavaParser {
         // 7. Transfer statements: return, throw, break, continue, yield, assert
         if (stream.match("return")) {
             Optional<JavaExpression> value = Optional.empty();
-            if (!stream.check(";")) {
+            if (!stream.check(";") && !stream.check("}")) {
                 value = Optional.of(parseExpression(stream));
             }
             stream.expect(";", CheckCategory.STATEMENT_TERMINATOR, "ERR_JAVA_MISSING_SEMICOLON",
