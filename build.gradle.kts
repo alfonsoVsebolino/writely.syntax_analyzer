@@ -1,8 +1,10 @@
 plugins {
     java
     application
+    jacoco
     id("org.openjfx.javafxplugin") version "0.1.0"
 }
+
 
 group = "com.writely"
 version = "0.1.0-SNAPSHOT"
@@ -34,4 +36,15 @@ application {
 
 tasks.test {
     useJUnitPlatform()
+    finalizedBy(tasks.jacocoTestReport)
 }
+
+tasks.jacocoTestReport {
+    dependsOn(tasks.test)
+    reports {
+        xml.required.set(true)
+        html.required.set(true)
+        csv.required.set(false)
+    }
+}
+
