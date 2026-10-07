@@ -36,7 +36,7 @@ We defined an immutable domain model using Java 21 records and enums under `com.
    - `Severity`: Enum (`ERROR`, `WARNING`, `INFO`).
    - `Diagnostic`: Record detailing category, severity, coordinate location, message, diagnostic rule code, and optional suggested fix.
    - `AnalysisStatus`: Outcome status enum (`PASSED`, `FAILED_SYNTAX_ERRORS`).
-   - `DiagnosticSummary`: Record summarizing total lines, token count, error count, warning count, category breakdown map, and outcome status, computed via `calculate(...)`.
+   - `DiagnosticSummary`: Record summarizing total lines, token count, error count, warning count, flagged lines, valid lines, category breakdown map, and outcome status, computed via `calculate(...)`. `flaggedLines` counts distinct source lines carrying at least one diagnostic; `validLines` is always `totalLines - flaggedLines`.
    - `AnalysisResult`: Complete analysis envelope carrying source payload, tokens, optional syntax tree, diagnostic list, and summary metrics.
 
 ## Consequences
@@ -45,3 +45,40 @@ We defined an immutable domain model using Java 21 records and enums under `com.
 - **Decoupled Architecture**: Parser adapters and diagnostic rules emit pure domain objects without referencing UI elements or external serialization frameworks.
 - **Serialization Ready**: Standard records with clean accessor methods provide frictionless mapping to JSON serializers and report formatters.
 - **Strict Invariants**: Construction-time checks reject invalid line/column coordinates, inverted spans, or negative summary metrics early at runtime.
+
+## Amendment — 2026-10-07: DiagnosticSummary flagged/valid line totals (#16)
+
+- **Status**: Accepted
+- **Date**: 2026-10-07
+
+### Context
+
+The analysis orchestrator introduced by issue #16 produces the first complete
+`AnalysisResult`, and its downstream consumers (text/JSON report export #13 and GUI
+display #15) need line-level health totals in addition to the existing counts: how many
+source lines were flagged by at least one diagnostic, and how many lines are clean. The
+summary previously exposed only totals, per-category counts, and the outcome status, so
+each consumer would have to recompute these line totals from the diagnostic list.
+
+### Decision
+
+We extended the `DiagnosticSummary` record with two additional components, as described
+in section 4 of the original decision:
+
+1. `flaggedLines`: the number of distinct source lines (within the payload range
+   `[1, totalLines]`) carrying at least one diagnostic.
+2. `validLines`: always `totalLines - flaggedLines`.
+
+`DiagnosticSummary.calculate(...)` derives both values while aggregating the diagnostics
+in a single pass. The canonical constructor now rejects negative `flaggedLines` /
+`validLines` and any combination where `flaggedLines + validLines != totalLines`,
+preserving the ADR's strict-invariants policy. The record's component arity therefore
+changed, which is source-incompatible for positional constructor callers; all in-repository
+callers were updated in the same change. `Diagnostic` itself is unchanged.
+
+### Consequences
+
+- Summary consumers can read line health totals directly instead of recomputing them,
+  keeping the shared model the single source of truth for aggregate metrics.
+- The invariant `flaggedLines + validLines == totalLines` is enforced at construction
+  time, so invalid summaries fail fast rather than reaching the GUI or exporters.

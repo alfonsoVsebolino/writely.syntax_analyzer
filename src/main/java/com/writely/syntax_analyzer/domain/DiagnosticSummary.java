@@ -1,18 +1,26 @@
 package com.writely.syntax_analyzer.domain;
 
 import java.util.EnumMap;
+import java.util.HashSet;
 import java.util.List;
 import java.util.Map;
 import java.util.Objects;
+import java.util.Set;
 
 /**
  * Summary metrics and outcome status aggregated from an analysis run.
+ *
+ * <p>{@code flaggedLines} is the number of distinct source lines carrying at least one
+ * diagnostic (lines outside the payload range {@code [1, totalLines]} are not counted);
+ * {@code validLines} is always {@code totalLines - flaggedLines}.</p>
  */
 public record DiagnosticSummary(
     int totalLines,
     int totalTokens,
     int errorCount,
     int warningCount,
+    int flaggedLines,
+    int validLines,
     Map<CheckCategory, Integer> categoryCounts,
     AnalysisStatus status
 ) {
@@ -28,6 +36,17 @@ public record DiagnosticSummary(
         }
         if (warningCount < 0) {
             throw new IllegalArgumentException("warningCount must be >= 0, but was: " + warningCount);
+        }
+        if (flaggedLines < 0) {
+            throw new IllegalArgumentException("flaggedLines must be >= 0, but was: " + flaggedLines);
+        }
+        if (validLines < 0) {
+            throw new IllegalArgumentException("validLines must be >= 0, but was: " + validLines);
+        }
+        if (flaggedLines + validLines != totalLines) {
+            throw new IllegalArgumentException(
+                "flaggedLines + validLines must equal totalLines, but was: "
+                    + flaggedLines + " + " + validLines + " != " + totalLines);
         }
         Objects.requireNonNull(categoryCounts, "categoryCounts must not be null");
         Objects.requireNonNull(status, "status must not be null");
@@ -48,6 +67,7 @@ public record DiagnosticSummary(
 
         int errorCount = 0;
         int warningCount = 0;
+        Set<Integer> flaggedLineNumbers = new HashSet<>();
         Map<CheckCategory, Integer> counts = new EnumMap<>(CheckCategory.class);
         for (CheckCategory cat : CheckCategory.values()) {
             counts.put(cat, 0);
@@ -63,7 +83,14 @@ public record DiagnosticSummary(
                 warningCount++;
             }
             counts.put(d.category(), counts.get(d.category()) + 1);
+            int line = d.location().line();
+            if (line >= 1 && line <= totalLines) {
+                flaggedLineNumbers.add(line);
+            }
         }
+
+        int flaggedLines = flaggedLineNumbers.size();
+        int validLines = totalLines - flaggedLines;
 
         AnalysisStatus status = errorCount > 0 ? AnalysisStatus.FAILED_SYNTAX_ERRORS : AnalysisStatus.PASSED;
 
@@ -72,6 +99,8 @@ public record DiagnosticSummary(
             totalTokens,
             errorCount,
             warningCount,
+            flaggedLines,
+            validLines,
             counts,
             status
         );

@@ -517,6 +517,8 @@ class DomainModelTest {
             assertEquals(25, summary.totalTokens());
             assertEquals(0, summary.errorCount());
             assertEquals(0, summary.warningCount());
+            assertEquals(0, summary.flaggedLines());
+            assertEquals(10, summary.validLines());
             assertEquals(AnalysisStatus.PASSED, summary.status());
             assertTrue(summary.isPassed());
             assertFalse(summary.hasErrors());
@@ -542,6 +544,9 @@ class DomainModelTest {
             assertEquals(12, summary.totalTokens());
             assertEquals(2, summary.errorCount());
             assertEquals(1, summary.warningCount());
+            // all four findings sit on line 1 -> one distinct flagged line
+            assertEquals(1, summary.flaggedLines());
+            assertEquals(4, summary.validLines());
             assertEquals(AnalysisStatus.FAILED_SYNTAX_ERRORS, summary.status());
             assertFalse(summary.isPassed());
             assertTrue(summary.hasErrors());
@@ -565,6 +570,8 @@ class DomainModelTest {
             DiagnosticSummary summary = DiagnosticSummary.calculate(1, 5, diagnostics);
             assertEquals(0, summary.errorCount());
             assertEquals(1, summary.warningCount());
+            assertEquals(1, summary.flaggedLines());
+            assertEquals(0, summary.validLines());
             assertEquals(AnalysisStatus.PASSED, summary.status());
         }
 
@@ -572,12 +579,16 @@ class DomainModelTest {
         @DisplayName("DiagnosticSummary invariants rejection")
         void testSummaryInvariants() {
             Map<CheckCategory, Integer> counts = Map.of(CheckCategory.DELIMITER_MATCH, 0);
-            assertThrows(IllegalArgumentException.class, () -> new DiagnosticSummary(-1, 0, 0, 0, counts, AnalysisStatus.PASSED));
-            assertThrows(IllegalArgumentException.class, () -> new DiagnosticSummary(0, -1, 0, 0, counts, AnalysisStatus.PASSED));
-            assertThrows(IllegalArgumentException.class, () -> new DiagnosticSummary(0, 0, -1, 0, counts, AnalysisStatus.PASSED));
-            assertThrows(IllegalArgumentException.class, () -> new DiagnosticSummary(0, 0, 0, -1, counts, AnalysisStatus.PASSED));
-            assertThrows(NullPointerException.class, () -> new DiagnosticSummary(0, 0, 0, 0, null, AnalysisStatus.PASSED));
-            assertThrows(NullPointerException.class, () -> new DiagnosticSummary(0, 0, 0, 0, counts, null));
+            assertThrows(IllegalArgumentException.class, () -> new DiagnosticSummary(-1, 0, 0, 0, 0, 1, counts, AnalysisStatus.PASSED));
+            assertThrows(IllegalArgumentException.class, () -> new DiagnosticSummary(0, -1, 0, 0, 0, 0, counts, AnalysisStatus.PASSED));
+            assertThrows(IllegalArgumentException.class, () -> new DiagnosticSummary(0, 0, -1, 0, 0, 0, counts, AnalysisStatus.PASSED));
+            assertThrows(IllegalArgumentException.class, () -> new DiagnosticSummary(0, 0, 0, -1, 0, 0, counts, AnalysisStatus.PASSED));
+            assertThrows(IllegalArgumentException.class, () -> new DiagnosticSummary(5, 0, 0, 0, -1, 6, counts, AnalysisStatus.PASSED));
+            assertThrows(IllegalArgumentException.class, () -> new DiagnosticSummary(5, 0, 0, 0, 2, -1, counts, AnalysisStatus.PASSED));
+            assertThrows(IllegalArgumentException.class, () -> new DiagnosticSummary(5, 0, 0, 0, 2, 4, counts, AnalysisStatus.PASSED));
+            assertThrows(NullPointerException.class, () -> new DiagnosticSummary(0, 0, 0, 0, 0, 0, null, AnalysisStatus.PASSED));
+            assertThrows(NullPointerException.class, () -> new DiagnosticSummary(0, 0, 0, 0, 0, 0, counts, null));
+            assertEquals(3, new DiagnosticSummary(3, 0, 0, 0, 0, 3, counts, AnalysisStatus.PASSED).validLines());
 
             // calculate guards
             assertThrows(IllegalArgumentException.class, () -> DiagnosticSummary.calculate(-1, 0, List.of()));
@@ -589,10 +600,14 @@ class DomainModelTest {
             withNull.add(Diagnostic.error(CheckCategory.LITERAL_SYNTAX, SourceLocation.start(), "err", "E"));
             DiagnosticSummary summaryWithNull = DiagnosticSummary.calculate(1, 1, withNull);
             assertEquals(1, summaryWithNull.errorCount());
+            assertEquals(1, summaryWithNull.flaggedLines());
+            assertEquals(0, summaryWithNull.validLines());
 
             // calculate with null diagnostics list
             DiagnosticSummary nullListSummary = DiagnosticSummary.calculate(10, 5, null);
             assertEquals(0, nullListSummary.errorCount());
+            assertEquals(0, nullListSummary.flaggedLines());
+            assertEquals(10, nullListSummary.validLines());
             assertEquals(AnalysisStatus.PASSED, nullListSummary.status());
 
             // calculate with payload and null tokens list
