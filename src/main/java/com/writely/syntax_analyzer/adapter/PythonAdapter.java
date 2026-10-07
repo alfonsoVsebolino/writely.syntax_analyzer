@@ -1,10 +1,8 @@
 package com.writely.syntax_analyzer.adapter;
 
+import com.writely.syntax_analyzer.adapter.python.PythonParser;
 import com.writely.syntax_analyzer.domain.Language;
-import com.writely.syntax_analyzer.domain.SourceLocation;
 import com.writely.syntax_analyzer.domain.SourcePayload;
-import com.writely.syntax_analyzer.domain.SourceSpan;
-import com.writely.syntax_analyzer.domain.SyntaxNode;
 import com.writely.syntax_analyzer.domain.Token;
 
 import java.util.List;
@@ -17,6 +15,7 @@ import java.util.function.BiFunction;
 public class PythonAdapter implements ParserAdapter {
 
     private final BiFunction<SourcePayload, List<Token>, ParseResult> customParser;
+    private final PythonParser defaultParser;
 
     public PythonAdapter() {
         this(null);
@@ -24,6 +23,7 @@ public class PythonAdapter implements ParserAdapter {
 
     public PythonAdapter(BiFunction<SourcePayload, List<Token>, ParseResult> customParser) {
         this.customParser = customParser;
+        this.defaultParser = new PythonParser();
     }
 
     @Override
@@ -46,10 +46,6 @@ public class PythonAdapter implements ParserAdapter {
         if (customParser != null) {
             return customParser.apply(payload, tokens);
         }
-        SourceSpan span = tokens.isEmpty()
-            ? SourceSpan.point(SourceLocation.start())
-            : SourceSpan.of(tokens.get(0).span().start(), tokens.get(tokens.size() - 1).span().end());
-        SyntaxNode root = SyntaxNode.of("Module", payload.sourceName(), span);
-        return ParseResult.of(root, List.of(), null, tokens);
+        return defaultParser.parse(payload, tokens);
     }
 }
