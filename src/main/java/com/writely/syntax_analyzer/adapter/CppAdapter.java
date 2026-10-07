@@ -1,5 +1,6 @@
 package com.writely.syntax_analyzer.adapter;
 
+import com.writely.syntax_analyzer.adapter.cpp.CppParser;
 import com.writely.syntax_analyzer.domain.Language;
 import com.writely.syntax_analyzer.domain.SourceLocation;
 import com.writely.syntax_analyzer.domain.SourcePayload;
@@ -46,10 +47,7 @@ public class CppAdapter implements ParserAdapter {
         if (customParser != null) {
             return customParser.apply(payload, tokens);
         }
-        SourceSpan span = tokens.isEmpty()
-            ? SourceSpan.point(SourceLocation.start())
-            : SourceSpan.of(tokens.get(0).span().start(), tokens.get(tokens.size() - 1).span().end());
-        SyntaxNode root = SyntaxNode.of("TranslationUnit", payload.sourceName(), span);
-        return ParseResult.of(root, List.of(), null, tokens);
+        CppParser parser = new CppParser();
+        return parser.parse(payload, tokens);
     }
 }
