@@ -33,4 +33,8 @@ public record Token(
     public SourceLocation endLocation() {
         return span.end();
     }
+
+    public boolean isTrivia() {
+        return tokenType.isTrivia();
+    }
 }
