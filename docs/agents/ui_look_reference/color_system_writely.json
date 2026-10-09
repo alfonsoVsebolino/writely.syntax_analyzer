@@ -1,0 +1,27 @@
+{
+  "color": {
+    "bg": {
+      "canvas": { "value": "#060A13", "type": "color" },
+      "surface-subtle": { "value": "#0B1326", "type": "color" },
+      "surface-elevated": { "value": "#111C38", "type": "color" }
+    },
+    "border": {
+      "subtle": { "value": "#1A284D", "type": "color" },
+      "focus": { "value": "#2D4480", "type": "color" }
+    },
+    "primary": {
+      "royal": { "value": "#2563EB", "type": "color" },
+      "royal-glow": { "value": "#3B82F6", "type": "color" },
+      "royal-dark": { "value": "#1D4ED8", "type": "color" }
+    },
+    "accent": {
+      "yellow": { "value": "#FACC15", "type": "color" },
+      "yellow-bright": { "value": "#FDE047", "type": "color" }
+    },
+    "text": {
+      "primary": { "value": "#F8FAFC", "type": "color" },
+      "secondary": { "value": "#94A3B8", "type": "color" },
+      "tertiary": { "value": "#64748B", "type": "color" }
+    }
+  }
+}
