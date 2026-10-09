@@ -4,6 +4,7 @@
 <?import javafx.scene.control.Button?>
 <?import javafx.scene.control.Label?>
 <?import javafx.scene.control.ScrollPane?>
+<?import javafx.scene.control.SplitPane?>
 <?import javafx.scene.control.Tab?>
 <?import javafx.scene.control.TabPane?>
 <?import javafx.scene.control.TableColumn?>
@@ -17,6 +18,7 @@
 <?import javafx.scene.layout.GridPane?>
 <?import javafx.scene.layout.HBox?>
 <?import javafx.scene.layout.Region?>
+<?import javafx.scene.layout.StackPane?>
 <?import javafx.scene.layout.VBox?>
 
 <BorderPane fx:id="rootPane"
@@ -47,56 +49,74 @@
 
     <!-- Center Workspace: 3 Columns -->
     <center>
-        <HBox spacing="16" styleClass="workspace-body">
-            <!-- Left Pane: File Explorer -->
-            <VBox fx:id="explorerPane" maxWidth="320.0" minWidth="180.0" prefWidth="230.0" spacing="12" styleClass="explorer-pane">
-                <TextField fx:id="searchField" promptText="🔍 Search files..." styleClass="search-field" />
-                <TreeView fx:id="fileTreeView" styleClass="file-tree-view" VBox.vgrow="ALWAYS" />
-                <Button fx:id="newFolderButton"
-                        maxWidth="Infinity"
-                        mnemonicParsing="false"
-                        onAction="#handleNewFolder"
-                        styleClass="new-folder-btn"
-                        text="+ New Folder" />
-            </VBox>
+        <SplitPane fx:id="workspaceSplitPane"
+                   orientation="HORIZONTAL"
+                   styleClass="workspace-split-pane">
+            <items>
+                <!-- Left Pane: File Explorer -->
+                <VBox fx:id="explorerPane" minWidth="180.0" prefWidth="230.0" spacing="12" styleClass="explorer-pane">
+                    <TextField fx:id="searchField" promptText="🔍 Search files..." styleClass="search-field" />
+                    <TreeView fx:id="fileTreeView" styleClass="file-tree-view" VBox.vgrow="ALWAYS" />
+                    <Button fx:id="newFolderButton"
+                            maxWidth="Infinity"
+                            mnemonicParsing="false"
+                            onAction="#handleNewFolder"
+                            styleClass="new-folder-btn"
+                            text="+ New Folder" />
+                </VBox>
 
-            <!-- Center Pane: Editor & Tabs -->
-            <VBox styleClass="editor-pane" HBox.hgrow="ALWAYS">
-                <TabPane fx:id="editorTabPane"
-                         styleClass="editor-tab-pane"
-                         tabClosingPolicy="ALL_TABS"
-                         VBox.vgrow="ALWAYS">
-                    <tabs>
-                        <Tab fx:id="activeTab" closable="true" text="filename.py">
-                            <HBox styleClass="editor-content-box">
-                                <TextArea fx:id="lineGutterArea"
-                                          editable="false"
-                                          focusTraversable="false"
-                                          maxWidth="48.0"
-                                          minWidth="48.0"
-                                          prefWidth="48.0"
-                                          styleClass="line-gutter"
-                                          wrapText="false" />
-                                <TextArea fx:id="editorTextArea"
-                                          styleClass="code-editor"
-                                          wrapText="false"
-                                          HBox.hgrow="ALWAYS" />
-                            </HBox>
-                        </Tab>
-                    </tabs>
-                </TabPane>
-            </VBox>
+                <!-- Center Pane: Editor & Tabs -->
+                <VBox fx:id="editorPane" minWidth="300.0" styleClass="editor-pane">
+                    <StackPane VBox.vgrow="ALWAYS">
+                        <TabPane fx:id="editorTabPane"
+                                 styleClass="editor-tab-pane"
+                                 tabClosingPolicy="ALL_TABS">
+                            <tabs>
+                                <Tab fx:id="activeTab" closable="true" text="filename.py">
+                                    <HBox styleClass="editor-content-box">
+                                        <TextArea fx:id="lineGutterArea"
+                                                  editable="false"
+                                                  focusTraversable="false"
+                                                  maxWidth="48.0"
+                                                  minWidth="48.0"
+                                                  prefWidth="48.0"
+                                                  styleClass="line-gutter"
+                                                  wrapText="false" />
+                                        <TextArea fx:id="editorTextArea"
+                                                  styleClass="code-editor"
+                                                  wrapText="false"
+                                                  HBox.hgrow="ALWAYS" />
+                                    </HBox>
+                                </Tab>
+                            </tabs>
+                        </TabPane>
+                        <VBox fx:id="editorEmptyStatePane"
+                              alignment="CENTER"
+                              managed="false"
+                              spacing="12"
+                              styleClass="editor-empty-state"
+                              visible="false">
+                            <Label styleClass="editor-empty-title" text="No open file" />
+                            <Label styleClass="editor-empty-subtitle" text="Select a file from the explorer on the left or click 'Ingest file' to begin analysis." />
+                        </VBox>
+                    </StackPane>
+                </VBox>
 
-            <!-- Right Dock: Insights, Tokens & AST -->
-            <VBox maxWidth="480.0" minWidth="280.0" prefWidth="380.0" spacing="0" styleClass="right-dock">
-                <TabPane fx:id="rightDockTabPane"
-                         styleClass="right-dock-tab-pane"
-                         tabClosingPolicy="UNAVAILABLE"
-                         VBox.vgrow="ALWAYS">
-                    <tabs>
-                        <!-- Tab 1: Insights & Diagnostics -->
-                        <Tab fx:id="insightsTab" text="Insights &amp; Diagnostics">
-                            <VBox spacing="16" styleClass="tab-content-box">
+                <!-- Right Dock: Insights, Tokens & AST -->
+                <VBox fx:id="rightDockPane" minWidth="280.0" prefWidth="380.0" spacing="0" styleClass="right-dock">
+                    <TabPane fx:id="rightDockTabPane"
+                             styleClass="right-dock-tab-pane"
+                             tabClosingPolicy="UNAVAILABLE"
+                             VBox.vgrow="ALWAYS">
+                        <tabs>
+                            <!-- Tab 1: Insights & Diagnostics -->
+                            <Tab fx:id="insightsTab" text="Insights &amp; Diagnostics">
+                                <ScrollPane fx:id="insightsScrollPane"
+                                            fitToHeight="false"
+                                            fitToWidth="true"
+                                            styleClass="tab-scroll-pane"
+                                            VBox.vgrow="ALWAYS">
+                                    <VBox spacing="16" styleClass="tab-content-box">
                                 <!-- Status Banner -->
                                 <HBox fx:id="statusBannerContainer" alignment="CENTER_LEFT" spacing="10" styleClass="status-banner, status-banner-idle">
                                     <Label fx:id="statusBanner" maxWidth="Infinity" styleClass="status-banner-text" text="IDLE" HBox.hgrow="ALWAYS" />
@@ -197,7 +217,8 @@
                                     </ScrollPane>
                                 </VBox>
                             </VBox>
-                        </Tab>
+                        </ScrollPane>
+                    </Tab>
 
                         <!-- Tab 2: Tokens Table -->
                         <Tab fx:id="tokensTab" text="Tokens Table">
@@ -250,7 +271,8 @@
                     </tabs>
                 </TabPane>
             </VBox>
-        </HBox>
+        </items>
+    </SplitPane>
     </center>
 
     <!-- Bottom Footer Status Bar -->

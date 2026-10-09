@@ -38,6 +38,7 @@ import javafx.scene.control.Alert;
 import javafx.scene.control.Button;
 import javafx.scene.control.Label;
 import javafx.scene.control.ScrollPane;
+import javafx.scene.control.SplitPane;
 import javafx.scene.control.Tab;
 import javafx.scene.control.TabPane;
 import javafx.scene.control.TableColumn;
@@ -106,13 +107,16 @@ public class WorkspaceController implements Initializable {
 
     // FXML View Nodes
     @FXML private BorderPane rootPane;
+    @FXML private SplitPane workspaceSplitPane;
     @FXML private Button deepScanButton;
     @FXML private Button ingestFileButton;
     @FXML private VBox explorerPane;
     @FXML private TextField searchField;
     @FXML private TreeView<String> fileTreeView;
     @FXML private Button newFolderButton;
+    @FXML private VBox editorPane;
     @FXML private TabPane editorTabPane;
+    @FXML private VBox editorEmptyStatePane;
     @FXML private Tab activeTab;
     @FXML private TextArea lineGutterArea;
     @FXML private TextArea editorTextArea;
@@ -139,8 +143,10 @@ public class WorkspaceController implements Initializable {
     @FXML private Label footerTokensLabel;
 
     // Right Dock Tabs & Inspection Views
+    @FXML private VBox rightDockPane;
     @FXML private TabPane rightDockTabPane;
     @FXML private Tab insightsTab;
+    @FXML private ScrollPane insightsScrollPane;
     @FXML private Tab tokensTab;
     @FXML private Tab astTab;
     @FXML private TextField tokenSearchField;
@@ -197,6 +203,9 @@ public class WorkspaceController implements Initializable {
 
     @Override
     public void initialize(URL location, ResourceBundle resources) {
+        if (workspaceSplitPane != null) {
+            workspaceSplitPane.setDividerPositions(0.20, 0.55);
+        }
         setupStateBindings();
         setupLineGutter();
         setupFileExplorer();
@@ -208,13 +217,13 @@ public class WorkspaceController implements Initializable {
 
     private void setupStateBindings() {
         if (deepScanButton != null) {
-            deepScanButton.disableProperty().bind(analyzing);
+            deepScanButton.disableProperty().bind(analyzing.or(currentFileName.isNull()));
         }
         if (exportTextButton != null) {
-            exportTextButton.disableProperty().bind(latestResult.isNull().or(analyzing));
+            exportTextButton.disableProperty().bind(latestResult.isNull().or(analyzing).or(currentFileName.isNull()));
         }
         if (exportJsonButton != null) {
-            exportJsonButton.disableProperty().bind(latestResult.isNull().or(analyzing));
+            exportJsonButton.disableProperty().bind(latestResult.isNull().or(analyzing).or(currentFileName.isNull()));
         }
     }
 
@@ -460,23 +469,48 @@ public class WorkspaceController implements Initializable {
         }
     }
 
-    private void handleActiveTabClosed() {
-        if (editorTabPane != null && editorTabPane.getTabs().isEmpty()) {
-            Tab newTab = new Tab("untitled.py");
-            newTab.setClosable(true);
-            HBox box = new HBox();
-            box.getStyleClass().add("editor-content-box");
-            if (lineGutterArea != null && editorTextArea != null) {
-                box.getChildren().addAll(lineGutterArea, editorTextArea);
-            }
-            newTab.setContent(box);
-            editorTabPane.getTabs().add(newTab);
-            activeTab = newTab;
-            currentFileName.set("untitled.py");
-            currentLanguage.set(Language.PYTHON);
-            if (editorTextArea != null) {
-                editorTextArea.clear();
-            }
+    public void handleActiveTabClosed() {
+        if (editorTabPane != null) {
+            editorTabPane.getTabs().clear();
+            editorTabPane.setVisible(false);
+            editorTabPane.setManaged(false);
+        }
+        activeTab = null;
+        if (editorEmptyStatePane != null) {
+            editorEmptyStatePane.setVisible(true);
+            editorEmptyStatePane.setManaged(true);
+        }
+        currentFileName.set(null);
+        currentFilePath.set(null);
+        if (editorTextArea != null) {
+            editorTextArea.clear();
+        }
+        if (lineGutterArea != null) {
+            lineGutterArea.clear();
+        }
+        latestResult.set(null);
+        masterTokensList.clear();
+        if (astTreeView != null) {
+            astTreeView.setRoot(null);
+            astTreeView.setVisible(false);
+            astTreeView.setManaged(false);
+        }
+        if (astEmptyStateLabel != null) {
+            astEmptyStateLabel.setVisible(false);
+            astEmptyStateLabel.setManaged(false);
+        }
+        if (diagnosticsListContainer != null) {
+            diagnosticsListContainer.getChildren().clear();
+        }
+        updateInitialStatus();
+        if (footerStatusLabel != null) {
+            footerStatusLabel.setText("No active file");
+        }
+        if (footerLinesLabel != null) {
+            footerLinesLabel.setText("0 lines");
+        }
+        if (footerTokensLabel != null) {
+            footerTokensLabel.setText("0 tokens");
         }
     }
 
@@ -552,15 +586,62 @@ public class WorkspaceController implements Initializable {
         }
     }
 
+    public void ensureActiveTabAttached(String filename) {
+        if (editorEmptyStatePane != null) {
+            editorEmptyStatePane.setVisible(false);
+            editorEmptyStatePane.setManaged(false);
+        }
+        if (editorTabPane != null) {
+            editorTabPane.setVisible(true);
+            editorTabPane.setManaged(true);
+            if (activeTab == null || !editorTabPane.getTabs().contains(activeTab)) {
+                if (activeTab == null) {
+                    activeTab = new Tab(filename != null ? filename : "untitled.py");
+                    activeTab.setClosable(true);
+                    activeTab.setOnClosed(e -> handleActiveTabClosed());
+                    HBox box = new HBox();
+                    box.getStyleClass().add("editor-content-box");
+                    if (lineGutterArea != null) {
+                        if (lineGutterArea.getParent() instanceof javafx.scene.layout.Pane p) {
+                            p.getChildren().remove(lineGutterArea);
+                        }
+                        box.getChildren().add(lineGutterArea);
+                    }
+                    if (editorTextArea != null) {
+                        if (editorTextArea.getParent() instanceof javafx.scene.layout.Pane p) {
+                            p.getChildren().remove(editorTextArea);
+                        }
+                        HBox.setHgrow(editorTextArea, Priority.ALWAYS);
+                        box.getChildren().add(editorTextArea);
+                    }
+                    activeTab.setContent(box);
+                } else {
+                    activeTab.setText(filename != null ? filename : "untitled.py");
+                    activeTab.setClosable(true);
+                    activeTab.setOnClosed(e -> handleActiveTabClosed());
+                }
+                if (!editorTabPane.getTabs().contains(activeTab)) {
+                    editorTabPane.getTabs().add(activeTab);
+                }
+            } else {
+                activeTab.setText(filename != null ? filename : "untitled.py");
+                activeTab.setClosable(true);
+                activeTab.setOnClosed(e -> handleActiveTabClosed());
+            }
+            editorTabPane.getSelectionModel().select(activeTab);
+        }
+    }
+
     /**
      * Loads source code text, filename, and language into the active editor session.
      */
     public void loadSourceCode(String code, String filename, Language language) {
+        ensureActiveTabAttached(filename);
         currentFileName.set(filename);
         currentLanguage.set(language);
         currentFilePath.set(null);
         if (editorTextArea != null) {
-            editorTextArea.setText(code);
+            editorTextArea.setText(code != null ? code : "");
         }
         if (activeTab != null) {
             activeTab.setText(filename);
@@ -571,7 +652,7 @@ public class WorkspaceController implements Initializable {
         if (footerStatusLabel != null) {
             footerStatusLabel.setText("Loaded " + filename);
         }
-        updateLineGutter(code);
+        updateLineGutter(code != null ? code : "");
     }
 
     // =========================================================================
@@ -684,8 +765,10 @@ public class WorkspaceController implements Initializable {
         }
         try {
             SourcePayload payload = ingestionService.ingestFile(path);
+            String fileName = path.getFileName().toString();
+            ensureActiveTabAttached(fileName);
             currentFilePath.set(path);
-            currentFileName.set(path.getFileName().toString());
+            currentFileName.set(fileName);
             currentLanguage.set(payload.language());
 
             if (editorTextArea != null) {
@@ -1172,27 +1255,30 @@ public class WorkspaceController implements Initializable {
         card.getStyleClass().addAll("diagnostic-card", "diagnostic-item");
         card.setUserData(diag);
 
-        HBox header = new HBox(8);
+        FlowPane header = new FlowPane();
+        header.setHgap(6);
+        header.setVgap(4);
         header.setAlignment(Pos.CENTER_LEFT);
-        header.getStyleClass().add("diagnostic-card-header");
+        header.getStyleClass().addAll("diagnostic-card-header", "card-header-flow");
 
         Label severityBadge = new Label(diag.severity().name());
         severityBadge.getStyleClass().addAll("badge-severity",
             diag.severity() == Severity.ERROR ? "badge-error" : "badge-warning");
+        severityBadge.setMinSize(Region.USE_PREF_SIZE, Region.USE_PREF_SIZE);
 
         Label codeBadge = new Label(diag.code());
         codeBadge.getStyleClass().add("code-badge");
+        codeBadge.setMinSize(Region.USE_PREF_SIZE, Region.USE_PREF_SIZE);
 
         Label locBadge = new Label("Line " + diag.line() + ", Col " + diag.column());
         locBadge.getStyleClass().add("loc-badge");
-
-        Region spacer = new Region();
-        HBox.setHgrow(spacer, Priority.ALWAYS);
+        locBadge.setMinSize(Region.USE_PREF_SIZE, Region.USE_PREF_SIZE);
 
         Label categoryBadge = new Label(diag.category().name());
         categoryBadge.getStyleClass().add("category-badge");
+        categoryBadge.setMinSize(Region.USE_PREF_SIZE, Region.USE_PREF_SIZE);
 
-        header.getChildren().addAll(severityBadge, codeBadge, locBadge, spacer, categoryBadge);
+        header.getChildren().addAll(severityBadge, codeBadge, locBadge, categoryBadge);
 
         Label messageLabel = new Label(diag.message());
         messageLabel.getStyleClass().addAll("diagnostic-message",
@@ -1568,5 +1654,29 @@ public class WorkspaceController implements Initializable {
 
     public ReportExportService getReportExportService() {
         return reportExportService;
+    }
+
+    public SplitPane getWorkspaceSplitPane() {
+        return workspaceSplitPane;
+    }
+
+    public VBox getExplorerPane() {
+        return explorerPane;
+    }
+
+    public VBox getEditorPane() {
+        return editorPane;
+    }
+
+    public VBox getEditorEmptyStatePane() {
+        return editorEmptyStatePane;
+    }
+
+    public VBox getRightDockPane() {
+        return rightDockPane;
+    }
+
+    public ScrollPane getInsightsScrollPane() {
+        return insightsScrollPane;
     }
 }

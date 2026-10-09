@@ -42,6 +42,7 @@ import java.util.concurrent.TimeUnit;
 import static org.junit.jupiter.api.Assertions.assertEquals;
 import static org.junit.jupiter.api.Assertions.assertFalse;
 import static org.junit.jupiter.api.Assertions.assertNotNull;
+import static org.junit.jupiter.api.Assertions.assertNull;
 import static org.junit.jupiter.api.Assertions.assertTrue;
 
 class WorkspaceControllerTest {
@@ -504,8 +505,8 @@ class WorkspaceControllerTest {
     }
 
     @Test
-    @DisplayName("Closing active tab recreates a blank untitled session")
-    void testTabClosingRecreatesEmptySession() throws Exception {
+    @DisplayName("Closing active tab enters empty state, clears editor buffer, and disables actions")
+    void testClosingActiveTabEntersEmptyState() throws Exception {
         runOnFxThread(() -> {
             FXMLLoader loader = new FXMLLoader(getClass().getResource("/fxml/main-workspace.fxml"));
             try {
@@ -515,13 +516,71 @@ class WorkspaceControllerTest {
             }
             WorkspaceController controller = loader.getController();
 
-            controller.getEditorTabPane().getTabs().clear();
-            // Trigger closed handler
-            controller.getActiveTab().getOnClosed().handle(null);
+            assertNotNull(controller.getActiveTab());
+            assertNotNull(controller.getEditorTabPane());
+            assertNotNull(controller.getEditorEmptyStatePane());
+            assertFalse(controller.getDeepScanButton().isDisable());
 
-            assertEquals(1, controller.getEditorTabPane().getTabs().size());
-            assertEquals("untitled.py", controller.getCurrentFileName());
+            // Close the active tab
+            controller.handleActiveTabClosed();
+
+            assertTrue(controller.getEditorEmptyStatePane().isVisible());
+            assertTrue(controller.getEditorEmptyStatePane().isManaged());
+            assertFalse(controller.getEditorTabPane().isVisible());
+            assertTrue(controller.getEditorTabPane().getTabs().isEmpty());
+            assertTrue(controller.getDeepScanButton().isDisable());
+            assertEquals("No active file", controller.getFooterStatusLabel().getText());
             assertEquals("", controller.getEditorText());
+            assertEquals("", controller.getLineGutterArea().getText());
+            assertNull(controller.getCurrentFileName());
+        });
+    }
+
+    @Test
+    @DisplayName("Calling loadSourceCode or selecting explorer file when in empty state re-attaches activeTab and re-enables scan")
+    void testReopeningFileFromEmptyStateReattachesTabAndEnablesScan() throws Exception {
+        runOnFxThread(() -> {
+            FXMLLoader loader = new FXMLLoader(getClass().getResource("/fxml/main-workspace.fxml"));
+            try {
+                loader.load();
+            } catch (IOException e) {
+                throw new RuntimeException(e);
+            }
+            WorkspaceController controller = loader.getController();
+
+            // 1. Enter empty state
+            controller.handleActiveTabClosed();
+            assertTrue(controller.getEditorEmptyStatePane().isVisible());
+            assertTrue(controller.getDeepScanButton().isDisable());
+
+            // 2. Load code / re-ingest
+            String code = "x = 42\nprint(x)\n";
+            controller.loadSourceCode(code, "script.py", Language.PYTHON);
+
+            assertFalse(controller.getEditorEmptyStatePane().isVisible());
+            assertFalse(controller.getEditorEmptyStatePane().isManaged());
+            assertTrue(controller.getEditorTabPane().isVisible());
+            assertEquals(1, controller.getEditorTabPane().getTabs().size());
+            assertNotNull(controller.getActiveTab());
+            assertEquals("script.py", controller.getActiveTab().getText());
+            assertEquals(code, controller.getEditorText());
+            assertFalse(controller.getDeepScanButton().isDisable());
+            assertEquals("Loaded script.py", controller.getFooterStatusLabel().getText());
+
+            // 3. Re-test reopening from tree view file click when in empty state
+            controller.handleActiveTabClosed();
+            assertTrue(controller.getEditorEmptyStatePane().isVisible());
+            assertTrue(controller.getDeepScanButton().isDisable());
+
+            controller.getFileTreeView().getSelectionModel().clearSelection();
+            TreeItem<String> projectFolder = controller.getFileTreeView().getRoot().getChildren().get(0);
+            TreeItem<String> pyFile = projectFolder.getChildren().get(0);
+            controller.getFileTreeView().getSelectionModel().select(pyFile);
+
+            assertFalse(controller.getEditorEmptyStatePane().isVisible());
+            assertTrue(controller.getEditorTabPane().isVisible());
+            assertFalse(controller.getDeepScanButton().isDisable());
+            assertEquals("filename.py", controller.getCurrentFileName());
         });
     }
 
@@ -845,7 +904,7 @@ class WorkspaceControllerTest {
             assertTrue(card.getStyleClass().contains("diagnostic-card"));
 
             // Find child labels
-            HBox header = (HBox) card.getChildren().get(0);
+            FlowPane header = (FlowPane) card.getChildren().get(0);
             Label severityBadge = (Label) header.getChildren().get(0);
             assertEquals("ERROR", severityBadge.getText());
             assertTrue(severityBadge.getStyleClass().contains("badge-error"));
@@ -858,7 +917,7 @@ class WorkspaceControllerTest {
             assertEquals("Line 7, Col 14", locBadge.getText());
             assertTrue(locBadge.getStyleClass().contains("loc-badge"));
 
-            Label categoryBadge = (Label) header.getChildren().get(4);
+            Label categoryBadge = (Label) header.getChildren().get(3);
             assertEquals("CONTROL_HEADER", categoryBadge.getText());
 
             Label messageLabel = (Label) card.getChildren().get(1);
@@ -1005,6 +1064,80 @@ class WorkspaceControllerTest {
             } catch (IOException e) {
                 throw new RuntimeException(e);
             }
+        });
+    }
+
+    @Test
+    @DisplayName("workspaceSplitPane divider positions initialized to [0.20, 0.55]")
+    void testWorkspaceSplitPaneInitialization() throws Exception {
+        runOnFxThread(() -> {
+            FXMLLoader loader = new FXMLLoader(getClass().getResource("/fxml/main-workspace.fxml"));
+            try {
+                loader.load();
+            } catch (IOException e) {
+                throw new RuntimeException(e);
+            }
+            WorkspaceController controller = loader.getController();
+
+            assertNotNull(controller.getWorkspaceSplitPane());
+            assertEquals(3, controller.getWorkspaceSplitPane().getItems().size());
+            assertEquals(controller.getExplorerPane(), controller.getWorkspaceSplitPane().getItems().get(0));
+            assertEquals(controller.getEditorPane(), controller.getWorkspaceSplitPane().getItems().get(1));
+            assertEquals(controller.getRightDockPane(), controller.getWorkspaceSplitPane().getItems().get(2));
+
+            double[] positions = controller.getWorkspaceSplitPane().getDividerPositions();
+            assertEquals(2, positions.length);
+            assertEquals(0.20, positions[0], 0.01);
+            assertEquals(0.55, positions[1], 0.01);
+        });
+    }
+
+    @Test
+    @DisplayName("Diagnostic cards use FlowPane headers and wrap badges")
+    void testDiagnosticCardsUseFlowPaneHeaderAndWrapBadges() throws Exception {
+        runOnFxThread(() -> {
+            FXMLLoader loader = new FXMLLoader(getClass().getResource("/fxml/main-workspace.fxml"));
+            try {
+                loader.load();
+            } catch (IOException e) {
+                throw new RuntimeException(e);
+            }
+            WorkspaceController controller = loader.getController();
+
+            Diagnostic diag = Diagnostic.error(
+                CheckCategory.DELIMITER_MATCH,
+                SourceLocation.of(1, 1),
+                "Unmatched paren",
+                "ERR_PAREN_01"
+            );
+            VBox card = controller.createDiagnosticCard(diag);
+            assertNotNull(card);
+            assertTrue(card.getChildren().get(0) instanceof FlowPane);
+
+            FlowPane header = (FlowPane) card.getChildren().get(0);
+            assertTrue(header.getStyleClass().contains("card-header-flow"));
+            assertEquals(6.0, header.getHgap());
+            assertEquals(4.0, header.getVgap());
+            assertEquals(4, header.getChildren().size());
+        });
+    }
+
+    @Test
+    @DisplayName("Insights tab content is wrapped in insightsScrollPane")
+    void testInsightsScrollPaneExists() throws Exception {
+        runOnFxThread(() -> {
+            FXMLLoader loader = new FXMLLoader(getClass().getResource("/fxml/main-workspace.fxml"));
+            try {
+                loader.load();
+            } catch (IOException e) {
+                throw new RuntimeException(e);
+            }
+            WorkspaceController controller = loader.getController();
+
+            assertNotNull(controller.getInsightsScrollPane());
+            assertTrue(controller.getInsightsScrollPane().isFitToWidth());
+            assertFalse(controller.getInsightsScrollPane().isFitToHeight());
+            assertTrue(controller.getInsightsScrollPane().getStyleClass().contains("tab-scroll-pane"));
         });
     }
 }
