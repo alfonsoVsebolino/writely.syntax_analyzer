@@ -35,3 +35,6 @@ Ubiquitous language and domain vocabulary across the core engine, GUI, and langu
   - Ordered list of `Diagnostic` findings.
   - Statistical summary (total lines, tokens, error count per category, overall status `PASSED`/`FAILED`).
 - **Syntax Report**: Human-readable or JSON serialized output generated from an `AnalysisResult`.
+
+## Interface & Guidance
+- **Onboarding Guide**: The built-in walkthrough that explains the analyzer's scope, purpose, and usage. It is presented on first launch and can be reopened at any time from the workspace. It documents that analysis is strictly static and syntactical: analyzed code is never executed, and semantic or runtime failures (such as undefined names) are outside the analyzer's scope.

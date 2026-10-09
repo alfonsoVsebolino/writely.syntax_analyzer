@@ -16,10 +16,13 @@ import com.writely.syntax_analyzer.domain.TokenType;
 import javafx.application.Platform;
 import javafx.concurrent.Task;
 import javafx.fxml.FXMLLoader;
+import javafx.scene.control.Label;
 import javafx.scene.control.TreeItem;
 import javafx.scene.Parent;
 import javafx.scene.Scene;
+import javafx.scene.layout.FlowPane;
 import javafx.scene.layout.HBox;
+import javafx.scene.layout.VBox;
 import org.junit.jupiter.api.BeforeAll;
 import org.junit.jupiter.api.DisplayName;
 import org.junit.jupiter.api.Test;
@@ -179,7 +182,10 @@ class WorkspaceControllerTest {
 
             assertEquals("0", controller.getTotalIssuesText());
             assertEquals("PASSED", controller.getStatusBadgeText());
-            assertEquals(1, controller.getDiagnosticsCardCount(), "Should show clean placeholder card");
+            assertEquals("PASSED", controller.getStatusBannerText());
+            assertTrue(controller.getEmptyStateBanner().isVisible());
+            assertTrue(controller.getEmptyStateBanner().isManaged());
+            assertEquals(0, controller.getDiagnosticsCardCount());
         });
     }
 
@@ -216,10 +222,13 @@ class WorkspaceControllerTest {
 
             assertEquals("2", controller.getTotalIssuesText());
             assertEquals("FAILED_SYNTAX_ERRORS", controller.getStatusBadgeText());
+            assertEquals("FAILED_SYNTAX_ERRORS", controller.getStatusBannerText());
+            assertFalse(controller.getEmptyStateBanner().isVisible());
             assertEquals(2, controller.getDiagnosticsCardCount());
 
-            HBox card1 = (HBox) controller.getDiagnosticsListContainer().getChildren().get(0);
+            VBox card1 = (VBox) controller.getDiagnosticsListContainer().getChildren().get(0);
             assertNotNull(card1);
+            assertTrue(card1.getStyleClass().contains("diagnostic-card"));
             assertTrue(card1.getStyleClass().contains("diagnostic-item"));
         });
     }
@@ -588,6 +597,245 @@ class WorkspaceControllerTest {
                 controller.getAstEmptyStateLabel().getText()
             );
             assertFalse(controller.getAstTreeView().isVisible());
+        });
+    }
+
+    @Test
+    @DisplayName("Status banner updates to PASSED on valid code and FAILED_SYNTAX_ERRORS on syntax errors")
+    void testStatusBannerUpdatesToPassedAndFailed() throws Exception {
+        runOnFxThread(() -> {
+            FXMLLoader loader = new FXMLLoader(getClass().getResource("/fxml/main-workspace.fxml"));
+            try {
+                loader.load();
+            } catch (IOException e) {
+                throw new RuntimeException(e);
+            }
+            WorkspaceController controller = loader.getController();
+
+            // 1. Valid code -> PASSED
+            SourcePayload validPayload = SourcePayload.snippet("x = 10\ny = 20\n", Language.PYTHON);
+            AnalysisResult passedResult = AnalysisResult.of(validPayload, List.of(), List.of());
+            controller.applyAnalysisResult(passedResult);
+
+            assertEquals("PASSED", controller.getStatusBannerText());
+            assertTrue(controller.getStatusBanner().getStyleClass().contains("status-banner-passed"));
+            assertFalse(controller.getStatusBanner().getStyleClass().contains("status-banner-failed"));
+            if (controller.getStatusBannerContainer() != null) {
+                assertTrue(controller.getStatusBannerContainer().getStyleClass().contains("status-banner-passed"));
+            }
+
+            // 2. Syntax errors -> FAILED_SYNTAX_ERRORS
+            Diagnostic err = Diagnostic.error(
+                CheckCategory.DELIMITER_MATCH,
+                SourceLocation.of(1, 1),
+                "Missing closing delimiter",
+                "ERR_DELIM"
+            );
+            AnalysisResult failedResult = AnalysisResult.of(validPayload, List.of(), List.of(err));
+            controller.applyAnalysisResult(failedResult);
+
+            assertEquals("FAILED_SYNTAX_ERRORS", controller.getStatusBannerText());
+            assertTrue(controller.getStatusBanner().getStyleClass().contains("status-banner-failed"));
+            assertFalse(controller.getStatusBanner().getStyleClass().contains("status-banner-passed"));
+            if (controller.getStatusBannerContainer() != null) {
+                assertTrue(controller.getStatusBannerContainer().getStyleClass().contains("status-banner-failed"));
+            }
+        });
+    }
+
+    @Test
+    @DisplayName("Summary metrics populate matching DiagnosticSummary")
+    void testSummaryMetricsPopulateMatchingDiagnosticSummary() throws Exception {
+        runOnFxThread(() -> {
+            FXMLLoader loader = new FXMLLoader(getClass().getResource("/fxml/main-workspace.fxml"));
+            try {
+                loader.load();
+            } catch (IOException e) {
+                throw new RuntimeException(e);
+            }
+            WorkspaceController controller = loader.getController();
+
+            String code = "line 1\nline 2\nline 3\nline 4\nline 5";
+            SourcePayload payload = SourcePayload.snippet(code, Language.PYTHON);
+
+            Diagnostic d1 = Diagnostic.error(CheckCategory.STATEMENT_TERMINATOR, SourceLocation.of(2, 5), "Missing colon", "ERR_TERM");
+            Diagnostic d2 = Diagnostic.warning(CheckCategory.IDENTIFIER_NAMING, SourceLocation.of(4, 1), "Bad variable name", "WARN_NAME");
+
+            AnalysisResult result = AnalysisResult.of(payload, List.of(), List.of(d1, d2));
+
+            controller.applyAnalysisResult(result);
+
+            assertEquals("5", controller.getTotalLinesText());
+            assertEquals("3", controller.getValidLinesText());
+            assertEquals("2", controller.getFlaggedLinesText());
+            assertEquals("2", controller.getTotalIssuesText());
+            assertEquals("1", controller.getErrorCountLabel().getText());
+            assertEquals("1", controller.getWarningCountLabel().getText());
+        });
+    }
+
+    @Test
+    @DisplayName("Category breakdown badges appear for active error categories")
+    void testCategoryBreakdownBadgesAppearForActiveCategories() throws Exception {
+        runOnFxThread(() -> {
+            FXMLLoader loader = new FXMLLoader(getClass().getResource("/fxml/main-workspace.fxml"));
+            try {
+                loader.load();
+            } catch (IOException e) {
+                throw new RuntimeException(e);
+            }
+            WorkspaceController controller = loader.getController();
+
+            Diagnostic d1 = Diagnostic.error(CheckCategory.DELIMITER_MATCH, SourceLocation.of(1, 1), "Error 1", "E1");
+            Diagnostic d2 = Diagnostic.error(CheckCategory.DELIMITER_MATCH, SourceLocation.of(2, 1), "Error 2", "E2");
+            Diagnostic d3 = Diagnostic.warning(CheckCategory.LITERAL_SYNTAX, SourceLocation.of(3, 1), "Warning 1", "W1");
+
+            SourcePayload payload = SourcePayload.snippet("a\nb\nc", Language.PYTHON);
+            AnalysisResult result = AnalysisResult.of(payload, List.of(), List.of(d1, d2, d3));
+
+            controller.applyAnalysisResult(result);
+
+            FlowPane container = controller.getCategoryBreakdownContainer();
+            assertNotNull(container);
+            assertEquals(2, container.getChildren().size());
+
+            boolean foundDelimiter = false;
+            boolean foundLiteral = false;
+            for (var node : container.getChildren()) {
+                assertTrue(node instanceof Label);
+                Label label = (Label) node;
+                assertTrue(label.getStyleClass().contains("category-chip"));
+                if (label.getText().contains("DELIMITER_MATCH: 2")) {
+                    foundDelimiter = true;
+                }
+                if (label.getText().contains("LITERAL_SYNTAX: 1")) {
+                    foundLiteral = true;
+                }
+            }
+            assertTrue(foundDelimiter, "DELIMITER_MATCH: 2 pill must be rendered");
+            assertTrue(foundLiteral, "LITERAL_SYNTAX: 1 pill must be rendered");
+        });
+    }
+
+    @Test
+    @DisplayName("Diagnostic cards populate with correct codes, locations, categories, and messages")
+    void testDiagnosticCardsPopulateWithCorrectMetadata() throws Exception {
+        runOnFxThread(() -> {
+            FXMLLoader loader = new FXMLLoader(getClass().getResource("/fxml/main-workspace.fxml"));
+            try {
+                loader.load();
+            } catch (IOException e) {
+                throw new RuntimeException(e);
+            }
+            WorkspaceController controller = loader.getController();
+
+            Diagnostic diag = Diagnostic.error(
+                CheckCategory.CONTROL_HEADER,
+                SourceLocation.of(7, 14),
+                "Missing colon after if condition",
+                "ERR_CTRL_01",
+                "Add ':' at end of line"
+            );
+
+            SourcePayload payload = SourcePayload.snippet("if True\n    pass", Language.PYTHON);
+            AnalysisResult result = AnalysisResult.of(payload, List.of(), List.of(diag));
+
+            controller.applyAnalysisResult(result);
+
+            assertEquals(1, controller.getDiagnosticsCardCount());
+            VBox card = (VBox) controller.getDiagnosticsListContainer().getChildren().get(0);
+            assertNotNull(card);
+            assertTrue(card.getStyleClass().contains("diagnostic-card"));
+
+            // Find child labels
+            HBox header = (HBox) card.getChildren().get(0);
+            Label severityBadge = (Label) header.getChildren().get(0);
+            assertEquals("ERROR", severityBadge.getText());
+            assertTrue(severityBadge.getStyleClass().contains("badge-error"));
+
+            Label codeBadge = (Label) header.getChildren().get(1);
+            assertEquals("ERR_CTRL_01", codeBadge.getText());
+            assertTrue(codeBadge.getStyleClass().contains("code-badge"));
+
+            Label locBadge = (Label) header.getChildren().get(2);
+            assertEquals("Line 7, Col 14", locBadge.getText());
+            assertTrue(locBadge.getStyleClass().contains("loc-badge"));
+
+            Label categoryBadge = (Label) header.getChildren().get(4);
+            assertEquals("CONTROL_HEADER", categoryBadge.getText());
+
+            Label messageLabel = (Label) card.getChildren().get(1);
+            assertEquals("Missing colon after if condition", messageLabel.getText());
+
+            Label fixLabel = (Label) card.getChildren().get(2);
+            assertTrue(fixLabel.getText().contains("Add ':' at end of line"));
+        });
+    }
+
+    @Test
+    @DisplayName("Clicking a diagnostic card jumps caret and selects text in codeEditorArea")
+    void testClickingDiagnosticCardJumpsCaretAndSelectsText() throws Exception {
+        runOnFxThread(() -> {
+            FXMLLoader loader = new FXMLLoader(getClass().getResource("/fxml/main-workspace.fxml"));
+            try {
+                loader.load();
+            } catch (IOException e) {
+                throw new RuntimeException(e);
+            }
+            WorkspaceController controller = loader.getController();
+
+            String source = "def calculate():\n    return 42 + invalid\n";
+            controller.setEditorText(source);
+
+            Diagnostic diag = Diagnostic.error(
+                CheckCategory.OPERATOR_SYNTAX,
+                SourceLocation.of(2, 5),
+                "Invalid operator syntax",
+                "ERR_OP_01"
+            );
+
+            SourcePayload payload = SourcePayload.snippet(source, Language.PYTHON);
+            AnalysisResult result = AnalysisResult.of(payload, List.of(), List.of(diag));
+
+            controller.applyAnalysisResult(result);
+
+            assertEquals(1, controller.getDiagnosticsCardCount());
+            VBox card = (VBox) controller.getDiagnosticsListContainer().getChildren().get(0);
+
+            // Simulate clicking the diagnostic card
+            card.getOnMouseClicked().handle(null);
+
+            // Target offset for line 2, col 5 in "def calculate():\n    return 42 + invalid\n"
+            // Line 1: length 17 ('\n' is index 16)
+            // Line 2 starts at 17. Col 5 is 17 + 4 = 21.
+            assertEquals(21, controller.getEditorTextArea().getCaretPosition());
+            assertFalse(controller.getEditorTextArea().getSelectedText().isEmpty());
+            assertTrue(controller.getEditorTextArea().getSelectedText().contains("return"));
+        });
+    }
+
+    @Test
+    @DisplayName("Clean empty state banner is displayed when analysis produces 0 errors")
+    void testEmptyStateBannerDisplayedWhenZeroErrors() throws Exception {
+        runOnFxThread(() -> {
+            FXMLLoader loader = new FXMLLoader(getClass().getResource("/fxml/main-workspace.fxml"));
+            try {
+                loader.load();
+            } catch (IOException e) {
+                throw new RuntimeException(e);
+            }
+            WorkspaceController controller = loader.getController();
+
+            SourcePayload payload = SourcePayload.snippet("x = 10", Language.PYTHON);
+            AnalysisResult result = AnalysisResult.of(payload, List.of(), List.of());
+
+            controller.applyAnalysisResult(result);
+
+            assertTrue(controller.getEmptyStateBanner().isVisible());
+            assertTrue(controller.getEmptyStateBanner().isManaged());
+            assertEquals("No syntax issues detected. Code is syntactically valid.", controller.getEmptyStateBannerText());
+            assertFalse(controller.getDiagnosticsScrollPane().isVisible());
+            assertEquals(0, controller.getDiagnosticsCardCount());
         });
     }
 }

@@ -6,6 +6,7 @@ import com.writely.syntax_analyzer.core.ingestion.IngestionException;
 import com.writely.syntax_analyzer.core.ingestion.SourceIngestionService;
 import com.writely.syntax_analyzer.domain.AnalysisResult;
 import com.writely.syntax_analyzer.domain.AnalysisStatus;
+import com.writely.syntax_analyzer.domain.CheckCategory;
 import com.writely.syntax_analyzer.domain.Diagnostic;
 import com.writely.syntax_analyzer.domain.Language;
 import com.writely.syntax_analyzer.domain.Severity;
@@ -28,6 +29,7 @@ import javafx.concurrent.Task;
 import javafx.event.ActionEvent;
 import javafx.fxml.FXML;
 import javafx.fxml.Initializable;
+import javafx.geometry.Pos;
 import javafx.scene.Node;
 import javafx.scene.control.Button;
 import javafx.scene.control.Label;
@@ -43,7 +45,10 @@ import javafx.scene.control.TreeCell;
 import javafx.scene.control.TreeItem;
 import javafx.scene.control.TreeView;
 import javafx.scene.layout.BorderPane;
+import javafx.scene.layout.FlowPane;
 import javafx.scene.layout.HBox;
+import javafx.scene.layout.Priority;
+import javafx.scene.layout.Region;
 import javafx.scene.layout.VBox;
 import javafx.stage.FileChooser;
 import javafx.stage.Window;
@@ -107,12 +112,18 @@ public class WorkspaceController implements Initializable {
     @FXML private Tab activeTab;
     @FXML private TextArea lineGutterArea;
     @FXML private TextArea editorTextArea;
+    @FXML private Label statusBanner;
+    @FXML private HBox statusBannerContainer;
     @FXML private Label totalIssuesBadge;
+    @FXML private Label totalIssuesLabel;
+    @FXML private Label totalLinesLabel;
     @FXML private Label statusBadgeLabel;
     @FXML private Label errorCountLabel;
     @FXML private Label warningCountLabel;
     @FXML private Label validLinesLabel;
     @FXML private Label flaggedLinesLabel;
+    @FXML private FlowPane categoryBreakdownContainer;
+    @FXML private Label emptyStateBanner;
     @FXML private Label diagnosticsCountLabel;
     @FXML private ScrollPane diagnosticsScrollPane;
     @FXML private VBox diagnosticsListContainer;
@@ -449,6 +460,13 @@ public class WorkspaceController implements Initializable {
     }
 
     private void updateInitialStatus() {
+        if (statusBanner != null) {
+            statusBanner.setText("IDLE");
+            statusBanner.getStyleClass().setAll("status-banner", "status-banner-idle");
+        }
+        if (statusBannerContainer != null) {
+            statusBannerContainer.getStyleClass().setAll("status-banner-container", "status-banner-idle");
+        }
         if (statusBadgeLabel != null) {
             statusBadgeLabel.setText("IDLE");
             statusBadgeLabel.getStyleClass().setAll("status-pill", "status-idle");
@@ -461,6 +479,31 @@ public class WorkspaceController implements Initializable {
         }
         if (totalIssuesBadge != null) {
             totalIssuesBadge.setText("0");
+        }
+        if (totalIssuesLabel != null) {
+            totalIssuesLabel.setText("0");
+        }
+        if (totalLinesLabel != null) {
+            totalLinesLabel.setText("0");
+        }
+        if (validLinesLabel != null) {
+            validLinesLabel.setText("0");
+        }
+        if (flaggedLinesLabel != null) {
+            flaggedLinesLabel.setText("0");
+        }
+        if (errorCountLabel != null) {
+            errorCountLabel.setText("0");
+        }
+        if (warningCountLabel != null) {
+            warningCountLabel.setText("0");
+        }
+        if (categoryBreakdownContainer != null) {
+            categoryBreakdownContainer.getChildren().clear();
+        }
+        if (emptyStateBanner != null) {
+            emptyStateBanner.setVisible(false);
+            emptyStateBanner.setManaged(false);
         }
         if (diagnosticsCountLabel != null) {
             diagnosticsCountLabel.setText("0 items");
@@ -708,28 +751,46 @@ public class WorkspaceController implements Initializable {
         if (totalIssuesBadge != null) {
             totalIssuesBadge.setText(String.valueOf(totalIssues));
         }
+        if (totalIssuesLabel != null) {
+            totalIssuesLabel.setText(String.valueOf(totalIssues));
+        }
+
+        String statusName = result.isPassed()
+            ? AnalysisStatus.PASSED.name()
+            : AnalysisStatus.FAILED_SYNTAX_ERRORS.name();
+        String bannerStyle = result.isPassed() ? "status-banner-passed" : "status-banner-failed";
+
+        if (statusBanner != null) {
+            statusBanner.setText(statusName);
+            statusBanner.getStyleClass().setAll("status-banner", bannerStyle);
+            statusBanner.setVisible(true);
+            statusBanner.setManaged(true);
+        }
+        if (statusBannerContainer != null) {
+            statusBannerContainer.getStyleClass().setAll("status-banner-container", bannerStyle);
+            statusBannerContainer.setVisible(true);
+            statusBannerContainer.setManaged(true);
+        }
 
         if (statusBadgeLabel != null) {
-            if (result.isPassed()) {
-                statusBadgeLabel.setText(AnalysisStatus.PASSED.name());
-                statusBadgeLabel.getStyleClass().setAll("status-pill", "status-passed");
-            } else {
-                statusBadgeLabel.setText(AnalysisStatus.FAILED_SYNTAX_ERRORS.name());
-                statusBadgeLabel.getStyleClass().setAll("status-pill", "status-failed");
-            }
+            statusBadgeLabel.setText(statusName);
+            statusBadgeLabel.getStyleClass().setAll("status-pill", result.isPassed() ? "status-passed" : "status-failed");
         }
 
-        if (errorCountLabel != null) {
-            errorCountLabel.setText(String.valueOf(result.errorCount()));
-        }
-        if (warningCountLabel != null) {
-            warningCountLabel.setText(String.valueOf(result.warningCount()));
+        if (totalLinesLabel != null) {
+            totalLinesLabel.setText(String.valueOf(result.summary().totalLines()));
         }
         if (validLinesLabel != null) {
             validLinesLabel.setText(String.valueOf(result.summary().validLines()));
         }
         if (flaggedLinesLabel != null) {
             flaggedLinesLabel.setText(String.valueOf(result.summary().flaggedLines()));
+        }
+        if (errorCountLabel != null) {
+            errorCountLabel.setText(String.valueOf(result.errorCount()));
+        }
+        if (warningCountLabel != null) {
+            warningCountLabel.setText(String.valueOf(result.warningCount()));
         }
         if (footerLinesLabel != null) {
             footerLinesLabel.setText(result.summary().totalLines() + " lines");
@@ -743,9 +804,26 @@ public class WorkspaceController implements Initializable {
                 : "Scan complete - " + totalIssues + " issue(s) detected");
         }
 
+        renderCategoryBreakdown(result);
         renderDiagnostics(result);
         renderTokens(result);
         renderAst(result);
+    }
+
+    private void renderCategoryBreakdown(AnalysisResult result) {
+        if (categoryBreakdownContainer == null) {
+            return;
+        }
+        categoryBreakdownContainer.getChildren().clear();
+        for (CheckCategory cat : CheckCategory.values()) {
+            int count = result.summary().countForCategory(cat);
+            if (count > 0) {
+                Label chip = new Label(cat.name() + ": " + count);
+                chip.getStyleClass().addAll("category-chip");
+                chip.setUserData(cat);
+                categoryBreakdownContainer.getChildren().add(chip);
+            }
+        }
     }
 
     private void renderTokens(AnalysisResult result) {
@@ -937,54 +1015,83 @@ public class WorkspaceController implements Initializable {
         }
 
         if (result.diagnostics().isEmpty()) {
-            Label cleanLabel = new Label("✓ No syntax errors found. Source is clean.");
-            cleanLabel.getStyleClass().add("diag-description");
-            diagnosticsListContainer.getChildren().add(cleanLabel);
+            if (emptyStateBanner != null) {
+                emptyStateBanner.setVisible(true);
+                emptyStateBanner.setManaged(true);
+            }
+            if (diagnosticsScrollPane != null) {
+                diagnosticsScrollPane.setVisible(false);
+                diagnosticsScrollPane.setManaged(false);
+            }
             return;
         }
 
+        if (emptyStateBanner != null) {
+            emptyStateBanner.setVisible(false);
+            emptyStateBanner.setManaged(false);
+        }
+        if (diagnosticsScrollPane != null) {
+            diagnosticsScrollPane.setVisible(true);
+            diagnosticsScrollPane.setManaged(true);
+        }
+
         for (Diagnostic diag : result.diagnostics()) {
-            HBox itemBox = new HBox(12);
-            itemBox.getStyleClass().add("diagnostic-item");
-
-            int lineNum = diag.location().line();
-            Label lineBadge = new Label(lineNum > 0 ? String.valueOf(lineNum) : "--");
-            lineBadge.getStyleClass().add("line-number-badge");
-
-            VBox detailsBox = new VBox(3);
-            Label titleLabel = new Label(diag.message());
-            if (diag.severity() == Severity.ERROR) {
-                titleLabel.getStyleClass().add("diag-error-title");
-            } else if (diag.severity() == Severity.WARNING) {
-                titleLabel.getStyleClass().add("diag-warning-title");
-            } else {
-                titleLabel.getStyleClass().add("diag-info-title");
-            }
-
-            StringBuilder descText = new StringBuilder();
-            descText.append(diag.category().displayName());
-            if (!diag.code().isBlank()) {
-                descText.append(" [").append(diag.code()).append("]");
-            }
-            if (diag.suggestedFix().isPresent()) {
-                descText.append(" • Fix: ").append(diag.suggestedFix().get());
-            }
-
-            Label descLabel = new Label(descText.toString());
-            descLabel.getStyleClass().add("diag-description");
-            descLabel.setWrapText(true);
-
-            detailsBox.getChildren().addAll(titleLabel, descLabel);
-            itemBox.getChildren().addAll(lineBadge, detailsBox);
-
-            itemBox.setOnMouseClicked(ev -> jumpToLocation(diag.location()));
-
-            diagnosticsListContainer.getChildren().add(itemBox);
+            VBox card = createDiagnosticCard(diag);
+            diagnosticsListContainer.getChildren().add(card);
         }
     }
 
-    public void jumpToLocation(SourceLocation location) {
-        if (location == null || location.line() <= 0 || editorTextArea == null) {
+    public VBox createDiagnosticCard(Diagnostic diag) {
+        VBox card = new VBox(6);
+        card.getStyleClass().addAll("diagnostic-card", "diagnostic-item");
+        card.setUserData(diag);
+
+        HBox header = new HBox(8);
+        header.setAlignment(Pos.CENTER_LEFT);
+        header.getStyleClass().add("diagnostic-card-header");
+
+        Label severityBadge = new Label(diag.severity().name());
+        severityBadge.getStyleClass().addAll("badge-severity",
+            diag.severity() == Severity.ERROR ? "badge-error" : "badge-warning");
+
+        Label codeBadge = new Label(diag.code());
+        codeBadge.getStyleClass().add("code-badge");
+
+        Label locBadge = new Label("Line " + diag.line() + ", Col " + diag.column());
+        locBadge.getStyleClass().add("loc-badge");
+
+        Region spacer = new Region();
+        HBox.setHgrow(spacer, Priority.ALWAYS);
+
+        Label categoryBadge = new Label(diag.category().name());
+        categoryBadge.getStyleClass().add("category-badge");
+
+        header.getChildren().addAll(severityBadge, codeBadge, locBadge, spacer, categoryBadge);
+
+        Label messageLabel = new Label(diag.message());
+        messageLabel.getStyleClass().addAll("diagnostic-message",
+            diag.severity() == Severity.ERROR ? "diag-error-title" : "diag-warning-title");
+        messageLabel.setWrapText(true);
+
+        card.getChildren().addAll(header, messageLabel);
+
+        if (diag.suggestedFix().isPresent()) {
+            Label fixLabel = new Label("Fix: " + diag.suggestedFix().get());
+            fixLabel.getStyleClass().add("diagnostic-fix");
+            fixLabel.setWrapText(true);
+            card.getChildren().add(fixLabel);
+        }
+
+        card.setOnMouseClicked(ev -> {
+            jumpToLocation(diag.line(), diag.column());
+            highlightLine(diag.line(), diag.column());
+        });
+
+        return card;
+    }
+
+    public void jumpToLocation(int line, int column) {
+        if (editorTextArea == null) {
             return;
         }
         String text = editorTextArea.getText();
@@ -992,12 +1099,12 @@ public class WorkspaceController implements Initializable {
             return;
         }
 
-        int targetLine = location.line();
+        int targetLine = Math.max(1, line);
         int currentLine = 1;
         int targetOffset = 0;
         for (int i = 0; i < text.length(); i++) {
             if (currentLine == targetLine) {
-                targetOffset = i + Math.max(0, location.column() - 1);
+                targetOffset = i + Math.max(0, column - 1);
                 break;
             }
             if (text.charAt(i) == '\n') {
@@ -1011,6 +1118,54 @@ public class WorkspaceController implements Initializable {
         editorTextArea.requestFocus();
     }
 
+    public void jumpToLocation(SourceLocation location) {
+        if (location == null || location.line() <= 0) {
+            return;
+        }
+        jumpToLocation(location.line(), location.column());
+    }
+
+    public void highlightLine(int line, int column) {
+        if (editorTextArea == null) {
+            return;
+        }
+        String text = editorTextArea.getText();
+        if (text == null || text.isEmpty()) {
+            return;
+        }
+
+        int targetLine = Math.max(1, line);
+        int currentLine = 1;
+        int lineStart = 0;
+        int lineEnd = text.length();
+
+        for (int i = 0; i < text.length(); i++) {
+            if (currentLine == targetLine) {
+                lineStart = i;
+                int nextNewline = text.indexOf('\n', lineStart);
+                lineEnd = nextNewline != -1 ? nextNewline : text.length();
+                break;
+            }
+            if (text.charAt(i) == '\n') {
+                currentLine++;
+            }
+        }
+
+        int caretPos = lineStart + Math.max(0, column - 1);
+        if (caretPos > lineEnd) {
+            caretPos = lineStart;
+        }
+
+        if (lineEnd > caretPos) {
+            editorTextArea.selectRange(lineEnd, caretPos);
+        } else if (lineEnd > lineStart) {
+            editorTextArea.selectRange(lineEnd, lineStart);
+        } else {
+            editorTextArea.selectRange(Math.min(lineStart + 1, text.length()), lineStart);
+        }
+        editorTextArea.requestFocus();
+    }
+
     private void handleAnalysisFailure(Throwable throwable) {
         if (footerStatusLabel != null) {
             footerStatusLabel.setText("Analysis failed: " + (throwable != null ? throwable.getMessage() : "Unknown error"));
@@ -1018,6 +1173,13 @@ public class WorkspaceController implements Initializable {
         if (statusBadgeLabel != null) {
             statusBadgeLabel.setText(AnalysisStatus.FAILED_SYNTAX_ERRORS.name());
             statusBadgeLabel.getStyleClass().setAll("status-pill", "status-failed");
+        }
+        if (statusBanner != null) {
+            statusBanner.setText(AnalysisStatus.FAILED_SYNTAX_ERRORS.name());
+            statusBanner.getStyleClass().setAll("status-banner", "status-banner-failed");
+        }
+        if (statusBannerContainer != null) {
+            statusBannerContainer.getStyleClass().setAll("status-banner-container", "status-banner-failed");
         }
     }
 
@@ -1077,15 +1239,93 @@ public class WorkspaceController implements Initializable {
     }
 
     public String getTotalIssuesText() {
-        return totalIssuesBadge != null ? totalIssuesBadge.getText() : "0";
+        if (totalIssuesBadge != null) {
+            return totalIssuesBadge.getText();
+        }
+        if (totalIssuesLabel != null) {
+            return totalIssuesLabel.getText();
+        }
+        return "0";
     }
 
     public String getStatusBadgeText() {
         return statusBadgeLabel != null ? statusBadgeLabel.getText() : "";
     }
 
+    public Label getStatusBanner() {
+        return statusBanner;
+    }
+
+    public HBox getStatusBannerContainer() {
+        return statusBannerContainer;
+    }
+
+    public String getStatusBannerText() {
+        return statusBanner != null ? statusBanner.getText() : "";
+    }
+
+    public Label getTotalLinesLabel() {
+        return totalLinesLabel;
+    }
+
+    public String getTotalLinesText() {
+        return totalLinesLabel != null ? totalLinesLabel.getText() : "0";
+    }
+
+    public Label getValidLinesLabel() {
+        return validLinesLabel;
+    }
+
+    public String getValidLinesText() {
+        return validLinesLabel != null ? validLinesLabel.getText() : "0";
+    }
+
+    public Label getFlaggedLinesLabel() {
+        return flaggedLinesLabel;
+    }
+
+    public String getFlaggedLinesText() {
+        return flaggedLinesLabel != null ? flaggedLinesLabel.getText() : "0";
+    }
+
+    public Label getTotalIssuesLabel() {
+        return totalIssuesLabel;
+    }
+
+    public Label getTotalIssuesBadge() {
+        return totalIssuesBadge;
+    }
+
+    public Label getErrorCountLabel() {
+        return errorCountLabel;
+    }
+
+    public Label getWarningCountLabel() {
+        return warningCountLabel;
+    }
+
+    public Label getStatusBadgeLabel() {
+        return statusBadgeLabel;
+    }
+
+    public FlowPane getCategoryBreakdownContainer() {
+        return categoryBreakdownContainer;
+    }
+
+    public Label getEmptyStateBanner() {
+        return emptyStateBanner;
+    }
+
+    public String getEmptyStateBannerText() {
+        return emptyStateBanner != null ? emptyStateBanner.getText() : "";
+    }
+
     public int getDiagnosticsCardCount() {
         return diagnosticsListContainer != null ? diagnosticsListContainer.getChildren().size() : 0;
+    }
+
+    public ScrollPane getDiagnosticsScrollPane() {
+        return diagnosticsScrollPane;
     }
 
     public TextArea getEditorTextArea() {

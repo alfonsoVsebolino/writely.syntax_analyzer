@@ -104,4 +104,12 @@ public record Diagnostic(
     public boolean isError() {
         return severity.isError();
     }
+
+    public int line() {
+        return location.line();
+    }
+
+    public int column() {
+        return location.column();
+    }
 }

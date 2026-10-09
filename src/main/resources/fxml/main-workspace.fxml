@@ -12,6 +12,9 @@
 <?import javafx.scene.control.TextField?>
 <?import javafx.scene.control.TreeView?>
 <?import javafx.scene.layout.BorderPane?>
+<?import javafx.scene.layout.ColumnConstraints?>
+<?import javafx.scene.layout.FlowPane?>
+<?import javafx.scene.layout.GridPane?>
 <?import javafx.scene.layout.HBox?>
 <?import javafx.scene.layout.Region?>
 <?import javafx.scene.layout.VBox?>
@@ -94,8 +97,13 @@
                         <!-- Tab 1: Insights & Diagnostics -->
                         <Tab fx:id="insightsTab" text="Insights &amp; Diagnostics">
                             <VBox spacing="16" styleClass="tab-content-box">
+                                <!-- Status Banner -->
+                                <HBox fx:id="statusBannerContainer" alignment="CENTER_LEFT" spacing="10" styleClass="status-banner, status-banner-idle">
+                                    <Label fx:id="statusBanner" maxWidth="Infinity" styleClass="status-banner-text" text="IDLE" HBox.hgrow="ALWAYS" />
+                                </HBox>
+
                                 <!-- Syntax Metric Insights Card -->
-                                <VBox styleClass="card, metric-card">
+                                <VBox styleClass="card, metric-card-container">
                                     <HBox alignment="CENTER_LEFT" spacing="8" styleClass="card-header">
                                         <Label styleClass="card-title" text="SYNTAX METRIC INSIGHTS" />
                                         <Region HBox.hgrow="ALWAYS" />
@@ -104,32 +112,50 @@
                                             <Label fx:id="totalIssuesBadge" styleClass="total-issues-pill" text="0" />
                                         </HBox>
                                     </HBox>
-                                    <VBox spacing="10" styleClass="card-body">
-                                        <HBox alignment="CENTER_LEFT" styleClass="metric-row">
-                                            <Label styleClass="metric-label" text="Status" />
+                                    <VBox spacing="12" styleClass="card-body">
+                                        <!-- Metrics Grid -->
+                                        <GridPane hgap="10" vgap="10" styleClass="metrics-grid">
+                                            <columnConstraints>
+                                                <ColumnConstraints percentWidth="50" />
+                                                <ColumnConstraints percentWidth="50" />
+                                            </columnConstraints>
+                                            <VBox styleClass="metric-card" GridPane.columnIndex="0" GridPane.rowIndex="0">
+                                                <Label styleClass="metric-label" text="TOTAL LINES" />
+                                                <Label fx:id="totalLinesLabel" styleClass="metric-value" text="0" />
+                                            </VBox>
+                                            <VBox styleClass="metric-card" GridPane.columnIndex="1" GridPane.rowIndex="0">
+                                                <Label styleClass="metric-label" text="VALID LINES" />
+                                                <Label fx:id="validLinesLabel" styleClass="metric-value" text="0" />
+                                            </VBox>
+                                            <VBox styleClass="metric-card" GridPane.columnIndex="0" GridPane.rowIndex="1">
+                                                <Label styleClass="metric-label" text="FLAGGED LINES" />
+                                                <Label fx:id="flaggedLinesLabel" styleClass="metric-value" text="0" />
+                                            </VBox>
+                                            <VBox styleClass="metric-card" GridPane.columnIndex="1" GridPane.rowIndex="1">
+                                                <Label styleClass="metric-label" text="TOTAL ISSUES" />
+                                                <Label fx:id="totalIssuesLabel" styleClass="metric-value" text="0" />
+                                            </VBox>
+                                        </GridPane>
+
+                                        <!-- Metric Subrow (Errors, Warnings, Status Badge) -->
+                                        <HBox alignment="CENTER_LEFT" spacing="16" styleClass="metric-subrow">
+                                            <HBox alignment="CENTER_LEFT" spacing="6">
+                                                <Label styleClass="metric-label" text="Errors:" />
+                                                <Label fx:id="errorCountLabel" styleClass="metric-value-error" text="0" />
+                                            </HBox>
+                                            <HBox alignment="CENTER_LEFT" spacing="6">
+                                                <Label styleClass="metric-label" text="Warnings:" />
+                                                <Label fx:id="warningCountLabel" styleClass="metric-value-warning" text="0" />
+                                            </HBox>
                                             <Region HBox.hgrow="ALWAYS" />
                                             <Label fx:id="statusBadgeLabel" styleClass="status-pill, status-idle" text="IDLE" />
                                         </HBox>
-                                        <HBox alignment="CENTER_LEFT" styleClass="metric-row">
-                                            <Label styleClass="metric-label" text="Errors" />
-                                            <Region HBox.hgrow="ALWAYS" />
-                                            <Label fx:id="errorCountLabel" styleClass="metric-value" text="0" />
-                                        </HBox>
-                                        <HBox alignment="CENTER_LEFT" styleClass="metric-row">
-                                            <Label styleClass="metric-label" text="Warnings" />
-                                            <Region HBox.hgrow="ALWAYS" />
-                                            <Label fx:id="warningCountLabel" styleClass="metric-value" text="0" />
-                                        </HBox>
-                                        <HBox alignment="CENTER_LEFT" styleClass="metric-row">
-                                            <Label styleClass="metric-label" text="Valid Lines" />
-                                            <Region HBox.hgrow="ALWAYS" />
-                                            <Label fx:id="validLinesLabel" styleClass="metric-value" text="0" />
-                                        </HBox>
-                                        <HBox alignment="CENTER_LEFT" styleClass="metric-row">
-                                            <Label styleClass="metric-label" text="Flagged Lines" />
-                                            <Region HBox.hgrow="ALWAYS" />
-                                            <Label fx:id="flaggedLinesLabel" styleClass="metric-value" text="0" />
-                                        </HBox>
+
+                                        <!-- Category Breakdown Section -->
+                                        <VBox spacing="8" styleClass="category-breakdown-section">
+                                            <Label styleClass="section-subheading" text="CATEGORY BREAKDOWN" />
+                                            <FlowPane fx:id="categoryBreakdownContainer" hgap="8" vgap="8" styleClass="category-breakdown-container" />
+                                        </VBox>
                                     </VBox>
                                 </VBox>
 
@@ -140,6 +166,12 @@
                                         <Region HBox.hgrow="ALWAYS" />
                                         <Label fx:id="diagnosticsCountLabel" styleClass="badge-label" text="0 items" />
                                     </HBox>
+                                    <Label fx:id="emptyStateBanner"
+                                           managed="false"
+                                           styleClass="empty-state-banner"
+                                           text="No syntax issues detected. Code is syntactically valid."
+                                           visible="false"
+                                           wrapText="true" />
                                     <ScrollPane fx:id="diagnosticsScrollPane"
                                                 fitToHeight="true"
                                                 fitToWidth="true"
