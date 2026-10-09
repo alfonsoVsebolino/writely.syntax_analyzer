@@ -4,6 +4,9 @@ import com.writely.syntax_analyzer.core.analysis.AnalysisOrchestrator;
 import com.writely.syntax_analyzer.core.ingestion.DefaultSourceIngestionService;
 import com.writely.syntax_analyzer.core.ingestion.IngestionException;
 import com.writely.syntax_analyzer.core.ingestion.SourceIngestionService;
+import com.writely.syntax_analyzer.core.report.ReportExportException;
+import com.writely.syntax_analyzer.core.report.ReportExportService;
+import com.writely.syntax_analyzer.core.report.ReportFormat;
 import com.writely.syntax_analyzer.domain.AnalysisResult;
 import com.writely.syntax_analyzer.domain.AnalysisStatus;
 import com.writely.syntax_analyzer.domain.CheckCategory;
@@ -127,6 +130,8 @@ public class WorkspaceController implements Initializable {
     @FXML private Label diagnosticsCountLabel;
     @FXML private ScrollPane diagnosticsScrollPane;
     @FXML private VBox diagnosticsListContainer;
+    @FXML private Button exportTextButton;
+    @FXML private Button exportJsonButton;
     @FXML private Label footerStatusLabel;
     @FXML private Label footerLanguageLabel;
     @FXML private Label footerLinesLabel;
@@ -155,6 +160,7 @@ public class WorkspaceController implements Initializable {
     // Services
     private SourceIngestionService ingestionService;
     private AnalysisOrchestrator orchestrator;
+    private ReportExportService reportExportService;
 
     // State Properties
     private final ObjectProperty<Language> currentLanguage = new SimpleObjectProperty<>(Language.PYTHON);
@@ -169,15 +175,20 @@ public class WorkspaceController implements Initializable {
      * Default zero-arg constructor required by JavaFX FXMLLoader.
      */
     public WorkspaceController() {
-        this(new DefaultSourceIngestionService(), new AnalysisOrchestrator());
+        this(new DefaultSourceIngestionService(), new AnalysisOrchestrator(), new ReportExportService());
     }
 
     /**
      * Dependency injection constructor for testing and modular composition.
      */
     public WorkspaceController(SourceIngestionService ingestionService, AnalysisOrchestrator orchestrator) {
+        this(ingestionService, orchestrator, new ReportExportService());
+    }
+
+    public WorkspaceController(SourceIngestionService ingestionService, AnalysisOrchestrator orchestrator, ReportExportService reportExportService) {
         this.ingestionService = Objects.requireNonNull(ingestionService, "ingestionService must not be null");
         this.orchestrator = Objects.requireNonNull(orchestrator, "orchestrator must not be null");
+        this.reportExportService = Objects.requireNonNull(reportExportService, "reportExportService must not be null");
     }
 
     @Override
@@ -194,6 +205,12 @@ public class WorkspaceController implements Initializable {
     private void setupStateBindings() {
         if (deepScanButton != null) {
             deepScanButton.disableProperty().bind(analyzing);
+        }
+        if (exportTextButton != null) {
+            exportTextButton.disableProperty().bind(latestResult.isNull().or(analyzing));
+        }
+        if (exportJsonButton != null) {
+            exportJsonButton.disableProperty().bind(latestResult.isNull().or(analyzing));
         }
     }
 
@@ -593,6 +610,59 @@ public class WorkspaceController implements Initializable {
             if (footerStatusLabel != null) {
                 footerStatusLabel.setText("Created Folder " + folderCount);
             }
+        }
+    }
+
+    @FXML
+    public void handleExportText(ActionEvent event) {
+        exportReportInteractive(ReportFormat.TEXT);
+    }
+
+    @FXML
+    public void handleExportJson(ActionEvent event) {
+        exportReportInteractive(ReportFormat.JSON);
+    }
+
+    private void exportReportInteractive(ReportFormat format) {
+        AnalysisResult result = latestResult.get();
+        if (result == null) {
+            return;
+        }
+
+        FileChooser chooser = new FileChooser();
+        chooser.setTitle(format == ReportFormat.TEXT ? "Save Text Analysis Report" : "Save JSON Analysis Report");
+        String ext = format.extension();
+        chooser.getExtensionFilters().add(new FileChooser.ExtensionFilter(
+            format == ReportFormat.TEXT ? "Text Report (*.txt)" : "JSON Report (*.json)",
+            "*." + ext
+        ));
+        String baseName = currentFileName.get() != null ? currentFileName.get().replaceFirst("\\.[^.]+$", "") : "report";
+        chooser.setInitialFileName(baseName + "-report." + ext);
+
+        Window window = rootPane != null && rootPane.getScene() != null ? rootPane.getScene().getWindow() : null;
+        File targetFile = chooser.showSaveDialog(window);
+        if (targetFile != null) {
+            exportReport(format, targetFile.toPath());
+        }
+    }
+
+    public void exportReport(ReportFormat format, Path destination) {
+        Objects.requireNonNull(format, "format must not be null");
+        Objects.requireNonNull(destination, "destination must not be null");
+        AnalysisResult result = latestResult.get();
+        if (result == null) {
+            throw new IllegalStateException("Cannot export report: no analysis result available");
+        }
+        try {
+            reportExportService.exportToFile(result, destination, format);
+            if (footerStatusLabel != null) {
+                footerStatusLabel.setText("Exported: " + destination.getFileName());
+            }
+        } catch (ReportExportException e) {
+            if (footerStatusLabel != null) {
+                footerStatusLabel.setText("Export failed: " + e.getMessage());
+            }
+            throw e;
         }
     }
 
@@ -1430,5 +1500,17 @@ public class WorkspaceController implements Initializable {
 
     public TableColumn<Token, String> getTokenChannelColumn() {
         return tokenChannelColumn;
+    }
+
+    public Button getExportTextButton() {
+        return exportTextButton;
+    }
+
+    public Button getExportJsonButton() {
+        return exportJsonButton;
+    }
+
+    public ReportExportService getReportExportService() {
+        return reportExportService;
     }
 }

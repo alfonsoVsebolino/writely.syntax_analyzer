@@ -156,6 +156,22 @@
                                             <Label styleClass="section-subheading" text="CATEGORY BREAKDOWN" />
                                             <FlowPane fx:id="categoryBreakdownContainer" hgap="8" vgap="8" styleClass="category-breakdown-container" />
                                         </VBox>
+
+                                        <!-- Report Export Actions -->
+                                        <HBox alignment="CENTER_LEFT" spacing="10" styleClass="export-actions-row">
+                                            <Label styleClass="section-subheading" text="EXPORT REPORT" />
+                                            <Region HBox.hgrow="ALWAYS" />
+                                            <Button fx:id="exportTextButton"
+                                                    mnemonicParsing="false"
+                                                    onAction="#handleExportText"
+                                                    styleClass="btn-export"
+                                                    text="Export .txt 📄" />
+                                            <Button fx:id="exportJsonButton"
+                                                    mnemonicParsing="false"
+                                                    onAction="#handleExportJson"
+                                                    styleClass="btn-export"
+                                                    text="Export .json ⚙️" />
+                                        </HBox>
                                     </VBox>
                                 </VBox>
 

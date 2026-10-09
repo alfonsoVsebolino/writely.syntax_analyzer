@@ -962,3 +962,37 @@
     -fx-background-color: #64748B;
 }
 
+/* ==========================================================================
+   Report Export Actions
+   ========================================================================== */
+.export-actions-row {
+    -fx-padding: 8 0 0 0;
+    -fx-alignment: center-left;
+}
+
+.btn-export {
+    -fx-background-color: #0B1326;
+    -fx-text-fill: #94A3B8;
+    -fx-border-color: #1A284D;
+    -fx-border-radius: 6px;
+    -fx-background-radius: 6px;
+    -fx-padding: 6 12 6 12;
+    -fx-font-size: 11px;
+    -fx-font-weight: bold;
+    -fx-cursor: hand;
+}
+
+.btn-export:hover {
+    -fx-background-color: #111C38;
+    -fx-text-fill: #F8FAFC;
+    -fx-border-color: #2D4480;
+}
+
+.btn-export:pressed {
+    -fx-background-color: #1A284D;
+}
+
+.btn-export:disabled {
+    -fx-opacity: 0.5;
+}
+

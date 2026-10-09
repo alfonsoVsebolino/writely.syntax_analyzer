@@ -2,6 +2,7 @@ package com.writely.syntax_analyzer.app;
 
 import com.writely.syntax_analyzer.core.analysis.AnalysisOrchestrator;
 import com.writely.syntax_analyzer.core.ingestion.DefaultSourceIngestionService;
+import com.writely.syntax_analyzer.core.report.ReportFormat;
 import com.writely.syntax_analyzer.domain.AnalysisResult;
 import com.writely.syntax_analyzer.domain.CheckCategory;
 import com.writely.syntax_analyzer.domain.Diagnostic;
@@ -836,6 +837,78 @@ class WorkspaceControllerTest {
             assertEquals("No syntax issues detected. Code is syntactically valid.", controller.getEmptyStateBannerText());
             assertFalse(controller.getDiagnosticsScrollPane().isVisible());
             assertEquals(0, controller.getDiagnosticsCardCount());
+        });
+    }
+
+    @Test
+    @DisplayName("Export buttons disabled initially and enabled after analysis result")
+    void testExportButtonsBindingAndState() throws Exception {
+        runOnFxThread(() -> {
+            FXMLLoader loader = new FXMLLoader(getClass().getResource("/fxml/main-workspace.fxml"));
+            try {
+                loader.load();
+            } catch (IOException e) {
+                throw new RuntimeException(e);
+            }
+            WorkspaceController controller = loader.getController();
+
+            assertNotNull(controller.getExportTextButton());
+            assertNotNull(controller.getExportJsonButton());
+            assertTrue(controller.getExportTextButton().isDisable());
+            assertTrue(controller.getExportJsonButton().isDisable());
+
+            SourcePayload payload = SourcePayload.snippet("x = 10", Language.PYTHON);
+            AnalysisResult result = AnalysisResult.of(payload, List.of(), List.of());
+            controller.applyAnalysisResult(result);
+
+            assertFalse(controller.getExportTextButton().isDisable());
+            assertFalse(controller.getExportJsonButton().isDisable());
+        });
+    }
+
+    @Test
+    @DisplayName("exportReport writes formatted text and JSON reports to disk")
+    void testExportReportWritesFilesToDisk(@TempDir Path tempDir) throws Exception {
+        runOnFxThread(() -> {
+            FXMLLoader loader = new FXMLLoader(getClass().getResource("/fxml/main-workspace.fxml"));
+            try {
+                loader.load();
+            } catch (IOException e) {
+                throw new RuntimeException(e);
+            }
+            WorkspaceController controller = loader.getController();
+
+            Diagnostic err = Diagnostic.error(
+                CheckCategory.DELIMITER_MATCH,
+                SourceLocation.of(1, 1),
+                "Missing delimiter",
+                "ERR_DELIM_01"
+            );
+            SourcePayload payload = SourcePayload.file("x = 10", "test.py", Language.PYTHON);
+            AnalysisResult result = AnalysisResult.of(payload, List.of(), List.of(err));
+            controller.applyAnalysisResult(result);
+
+            Path txtOut = tempDir.resolve("report.txt");
+            controller.exportReport(ReportFormat.TEXT, txtOut);
+            assertTrue(Files.exists(txtOut));
+            try {
+                String txtContent = Files.readString(txtOut);
+                assertTrue(txtContent.contains("SYNTACTICAL ANALYSIS REPORT"));
+                assertTrue(txtContent.contains("Missing delimiter"));
+            } catch (IOException e) {
+                throw new RuntimeException(e);
+            }
+
+            Path jsonOut = tempDir.resolve("report.json");
+            controller.exportReport(ReportFormat.JSON, jsonOut);
+            assertTrue(Files.exists(jsonOut));
+            try {
+                String jsonContent = Files.readString(jsonOut);
+                assertTrue(jsonContent.contains("\"language\": \"PYTHON\""));
+                assertTrue(jsonContent.contains("\"ERR_DELIM_01\""));
+            } catch (IOException e) {
+                throw new RuntimeException(e);
+            }
         });
     }
 }
