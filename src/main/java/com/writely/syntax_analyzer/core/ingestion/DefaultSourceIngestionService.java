@@ -96,8 +96,10 @@ public class DefaultSourceIngestionService implements SourceIngestionService {
         }
 
         if (fileSize > maxFileSizeBytes) {
-            throw new IngestionException(IngestionErrorCode.FILE_TOO_LARGE,
-                "File size (" + fileSize + " bytes) exceeds maximum allowed limit of " + maxFileSizeBytes + " bytes: " + filePath);
+            String message = (maxFileSizeBytes == MAX_FILE_SIZE_BYTES)
+                ? "File exceeds 10 MB limit (" + fileSize + " bytes > " + maxFileSizeBytes + " bytes limit): " + filePath
+                : "File size (" + fileSize + " bytes) exceeds maximum allowed limit of " + maxFileSizeBytes + " bytes: " + filePath;
+            throw new IngestionException(IngestionErrorCode.FILE_TOO_LARGE, message);
         }
 
         String sourceName = Objects.toString(filePath.getFileName(), filePath.toString());
@@ -121,7 +123,7 @@ public class DefaultSourceIngestionService implements SourceIngestionService {
         for (int i = 0; i < scanLength; i++) {
             if (bytes[i] == 0) {
                 throw new IngestionException(IngestionErrorCode.BINARY_FILE_DETECTED,
-                    "Binary null byte detected in source file: " + filePath);
+                    "Binary file detected. Only UTF-8 plain text source files are supported.");
             }
         }
 
@@ -134,7 +136,7 @@ public class DefaultSourceIngestionService implements SourceIngestionService {
             charBuffer = decoder.decode(ByteBuffer.wrap(bytes));
         } catch (CharacterCodingException e) {
             throw new IngestionException(IngestionErrorCode.BINARY_FILE_DETECTED,
-                "Malformed UTF-8 encoding or binary content detected in source file: " + filePath, e);
+                "Binary file detected. Only UTF-8 plain text source files are supported.", e);
         }
 
         String content = charBuffer.toString();

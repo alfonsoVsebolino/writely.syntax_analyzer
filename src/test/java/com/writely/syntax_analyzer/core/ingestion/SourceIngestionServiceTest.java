@@ -341,10 +341,10 @@ class SourceIngestionServiceTest {
         }
 
         @Test
-        @DisplayName("File exceeding 15 MB limit throws FILE_TOO_LARGE")
-        void testFileExceeding15MbThrowsLarge(@TempDir Path tempDir) throws IOException {
+        @DisplayName("File exceeding 10 MB limit throws FILE_TOO_LARGE")
+        void testFileExceeding10MbThrowsLarge(@TempDir Path tempDir) throws IOException {
             Path largeFile = tempDir.resolve("huge.java");
-            // Create a sparse file of 15 MB + 1 byte
+            // Create a sparse file of 10 MB + 1 byte
             try (RandomAccessFile raf = new RandomAccessFile(largeFile.toFile(), "rw")) {
                 raf.setLength(DefaultSourceIngestionService.MAX_FILE_SIZE_BYTES + 1);
             }
@@ -352,6 +352,7 @@ class SourceIngestionServiceTest {
             IngestionException ex = assertThrows(IngestionException.class,
                 () -> ingestionService.ingestFile(largeFile));
             assertEquals(IngestionErrorCode.FILE_TOO_LARGE, ex.errorCode());
+            assertTrue(ex.getMessage().contains("File exceeds 10 MB limit"));
         }
 
         @Test

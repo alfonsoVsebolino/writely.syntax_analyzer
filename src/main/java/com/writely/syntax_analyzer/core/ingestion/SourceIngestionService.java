@@ -13,9 +13,9 @@ import java.nio.file.Path;
 public interface SourceIngestionService {
 
     /**
-     * Maximum allowed source file size in bytes (15 MB).
+     * Maximum allowed source file size in bytes (10 MB).
      */
-    long MAX_FILE_SIZE_BYTES = 15L * 1024L * 1024L;
+    long MAX_FILE_SIZE_BYTES = 10L * 1024L * 1024L;
 
     /**
      * Ingests a single line of source code with an explicitly specified language.

@@ -34,6 +34,7 @@ import javafx.fxml.FXML;
 import javafx.fxml.Initializable;
 import javafx.geometry.Pos;
 import javafx.scene.Node;
+import javafx.scene.control.Alert;
 import javafx.scene.control.Button;
 import javafx.scene.control.Label;
 import javafx.scene.control.ScrollPane;
@@ -168,6 +169,9 @@ public class WorkspaceController implements Initializable {
     private final ObjectProperty<Path> currentFilePath = new SimpleObjectProperty<>(null);
     private final ObjectProperty<AnalysisResult> latestResult = new SimpleObjectProperty<>(null);
     private final BooleanProperty analyzing = new SimpleBooleanProperty(false);
+
+    private Alert latestAlert;
+    private java.util.function.Consumer<Alert> alertShower = Alert::show;
 
     private TreeItem<String> rootTreeItem;
 
@@ -670,7 +674,14 @@ public class WorkspaceController implements Initializable {
      * Ingests a local file via {@link SourceIngestionService} and updates the editor and analysis state.
      */
     public void ingestFile(Path path) {
-        Objects.requireNonNull(path, "path must not be null");
+        if (path == null) {
+            String errorMsg = "Source file path must not be null";
+            if (footerStatusLabel != null) {
+                footerStatusLabel.setText("Ingestion error: " + errorMsg);
+            }
+            showNonBlockingErrorAlert("File Ingestion Error", "Failed to ingest source file", errorMsg);
+            return;
+        }
         try {
             SourcePayload payload = ingestionService.ingestFile(path);
             currentFilePath.set(path);
@@ -695,10 +706,55 @@ public class WorkspaceController implements Initializable {
 
             runAnalysis();
         } catch (IngestionException e) {
+            String errorMsg = e.getMessage() != null ? e.getMessage() : "Ingestion failed";
             if (footerStatusLabel != null) {
-                footerStatusLabel.setText("Ingestion error: " + e.getMessage());
+                footerStatusLabel.setText("Ingestion error: " + errorMsg);
             }
+            showNonBlockingErrorAlert("File Ingestion Error", "Failed to ingest source file: " + path.getFileName(), errorMsg);
+        } catch (Throwable t) {
+            String errorMsg = (t.getMessage() != null && !t.getMessage().isBlank()) ? t.getMessage() : "Unexpected ingestion error";
+            if (footerStatusLabel != null) {
+                footerStatusLabel.setText("Ingestion error: " + errorMsg);
+            }
+            showNonBlockingErrorAlert("File Ingestion Error", "Unexpected error while reading file: " + path.getFileName(), errorMsg);
         }
+    }
+
+    /**
+     * Displays a non-blocking error Alert / dialog without terminating or crashing the JavaFX application.
+     */
+    public void showNonBlockingErrorAlert(String title, String header, String content) {
+        Runnable showAction = () -> {
+            try {
+                Alert alert = new Alert(Alert.AlertType.ERROR);
+                alert.initModality(javafx.stage.Modality.NONE);
+                alert.setTitle(title);
+                alert.setHeaderText(header);
+                alert.setContentText(content);
+                latestAlert = alert;
+                Window owner = rootPane != null && rootPane.getScene() != null ? rootPane.getScene().getWindow() : null;
+                if (owner != null) {
+                    alert.initOwner(owner);
+                }
+                alertShower.accept(alert);
+            } catch (Throwable ignored) {
+                // Graceful fallback for headless or restricted window environments
+            }
+        };
+
+        if (Platform.isFxApplicationThread()) {
+            showAction.run();
+        } else {
+            Platform.runLater(showAction);
+        }
+    }
+
+    public Alert getLatestAlert() {
+        return latestAlert;
+    }
+
+    public void setAlertShower(java.util.function.Consumer<Alert> alertShower) {
+        this.alertShower = Objects.requireNonNull(alertShower, "alertShower must not be null");
     }
 
     private void addIngestedFileToTree(Path path, Language language) {

@@ -17,6 +17,7 @@ import com.writely.syntax_analyzer.domain.TokenType;
 import javafx.application.Platform;
 import javafx.concurrent.Task;
 import javafx.fxml.FXMLLoader;
+import javafx.scene.control.Alert;
 import javafx.scene.control.Label;
 import javafx.scene.control.TreeItem;
 import javafx.scene.Parent;
@@ -49,9 +50,13 @@ class WorkspaceControllerTest {
     static void initJavaFx() throws InterruptedException {
         CountDownLatch latch = new CountDownLatch(1);
         try {
-            Platform.startup(latch::countDown);
+            Platform.startup(() -> {
+                Platform.setImplicitExit(false);
+                latch.countDown();
+            });
         } catch (IllegalStateException e) {
             // Already initialized in test JVM
+            Platform.runLater(() -> Platform.setImplicitExit(false));
             latch.countDown();
         }
         assertTrue(latch.await(5, TimeUnit.SECONDS), "JavaFX Platform should start within 5s");
@@ -404,6 +409,97 @@ class WorkspaceControllerTest {
 
             controller.ingestFile(Path.of("/non/existent/file.py"));
             assertTrue(controller.getFooterStatusLabel().getText().contains("Ingestion error:"));
+            assertNotNull(controller.getLatestAlert());
+            assertEquals(Alert.AlertType.ERROR, controller.getLatestAlert().getAlertType());
+            if (controller.getLatestAlert() != null) {
+                controller.getLatestAlert().close();
+            }
+        });
+    }
+
+    @Test
+    @DisplayName("Ingest binary file detects null byte, updates status label, and shows error alert")
+    void testIngestBinaryFileDisplaysErrorAlert(@TempDir Path tempDir) throws Exception {
+        Path binaryFile = tempDir.resolve("binary_code.py");
+        Files.write(binaryFile, new byte[]{0x00, 'p', 'r', 'i', 'n', 't'});
+
+        runOnFxThread(() -> {
+            FXMLLoader loader = new FXMLLoader(getClass().getResource("/fxml/main-workspace.fxml"));
+            try {
+                loader.load();
+            } catch (IOException e) {
+                throw new RuntimeException(e);
+            }
+            WorkspaceController controller = loader.getController();
+
+            controller.ingestFile(binaryFile);
+            assertTrue(controller.getFooterStatusLabel().getText().contains("Ingestion error:"));
+            assertTrue(controller.getFooterStatusLabel().getText().contains("Binary file detected"));
+            assertNotNull(controller.getLatestAlert());
+            assertEquals(Alert.AlertType.ERROR, controller.getLatestAlert().getAlertType());
+            assertTrue(controller.getLatestAlert().getContentText().contains("Binary file detected"));
+            if (controller.getLatestAlert() != null) {
+                controller.getLatestAlert().close();
+            }
+        });
+    }
+
+    @Test
+    @DisplayName("Ingest oversized file exceeding 10MB updates status label and shows error alert")
+    void testIngestOversizedFileDisplaysErrorAlert(@TempDir Path tempDir) throws Exception {
+        Path largeFile = tempDir.resolve("large_source.java");
+        try (java.io.RandomAccessFile raf = new java.io.RandomAccessFile(largeFile.toFile(), "rw")) {
+            raf.setLength(10L * 1024L * 1024L + 1L);
+        }
+
+        runOnFxThread(() -> {
+            FXMLLoader loader = new FXMLLoader(getClass().getResource("/fxml/main-workspace.fxml"));
+            try {
+                loader.load();
+            } catch (IOException e) {
+                throw new RuntimeException(e);
+            }
+            WorkspaceController controller = loader.getController();
+
+            controller.ingestFile(largeFile);
+            assertTrue(controller.getFooterStatusLabel().getText().contains("Ingestion error:"));
+            assertTrue(controller.getFooterStatusLabel().getText().contains("File exceeds 10 MB limit"));
+            assertNotNull(controller.getLatestAlert());
+            assertEquals(Alert.AlertType.ERROR, controller.getLatestAlert().getAlertType());
+            if (controller.getLatestAlert() != null) {
+                controller.getLatestAlert().close();
+            }
+        });
+    }
+
+    @Test
+    @DisplayName("Ingest file with unexpected service error handles error without crashing")
+    void testIngestFileUnexpectedServiceErrorHandlesGracefully(@TempDir Path tempDir) throws Exception {
+        Path testFile = tempDir.resolve("script.py");
+        Files.writeString(testFile, "print('test')");
+
+        runOnFxThread(() -> {
+            FXMLLoader loader = new FXMLLoader(getClass().getResource("/fxml/main-workspace.fxml"));
+            try {
+                loader.load();
+            } catch (IOException e) {
+                throw new RuntimeException(e);
+            }
+            WorkspaceController controller = loader.getController();
+            controller.setIngestionService(new DefaultSourceIngestionService() {
+                @Override
+                public SourcePayload ingestFile(Path filePath, Language explicitLanguage) {
+                    throw new RuntimeException("Simulated unexpected ingestion failure");
+                }
+            });
+
+            controller.ingestFile(testFile);
+            assertTrue(controller.getFooterStatusLabel().getText().contains("Ingestion error:"));
+            assertNotNull(controller.getLatestAlert());
+            assertEquals(Alert.AlertType.ERROR, controller.getLatestAlert().getAlertType());
+            if (controller.getLatestAlert() != null) {
+                controller.getLatestAlert().close();
+            }
         });
     }
 

@@ -23,6 +23,26 @@ public class IngestionException extends RuntimeException {
         this.errorCode = Objects.requireNonNull(errorCode, "errorCode must not be null");
     }
 
+    public IngestionException(String message) {
+        this(resolveErrorCode(message), message, null);
+    }
+
+    public IngestionException(String message, Throwable cause) {
+        this(resolveErrorCode(message), message, cause);
+    }
+
+    private static IngestionErrorCode resolveErrorCode(String message) {
+        if (message != null) {
+            if (message.contains("10 MB limit") || message.contains("limit") || message.contains("exceeds")) {
+                return IngestionErrorCode.FILE_TOO_LARGE;
+            }
+            if (message.contains("Binary") || message.contains("UTF-8")) {
+                return IngestionErrorCode.BINARY_FILE_DETECTED;
+            }
+        }
+        return IngestionErrorCode.IO_ERROR;
+    }
+
     /**
      * Returns the error code indicating the ingestion failure category.
      */

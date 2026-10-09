@@ -31,6 +31,7 @@ dependencies {
 }
 
 application {
+    applicationName = "syntax_analyzer"
     mainClass.set("com.writely.syntax_analyzer.app.Launcher")
 }
 
