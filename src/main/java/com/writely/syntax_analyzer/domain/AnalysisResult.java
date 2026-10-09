@@ -65,4 +65,11 @@ public record AnalysisResult(
     public int warningCount() {
         return summary.warningCount();
     }
+
+    /**
+     * Alias for syntaxTree() representing the root AST node if parsing succeeded.
+     */
+    public Optional<SyntaxNode> rootNode() {
+        return syntaxTree;
+    }
 }

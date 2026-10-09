@@ -6,6 +6,8 @@
 <?import javafx.scene.control.ScrollPane?>
 <?import javafx.scene.control.Tab?>
 <?import javafx.scene.control.TabPane?>
+<?import javafx.scene.control.TableColumn?>
+<?import javafx.scene.control.TableView?>
 <?import javafx.scene.control.TextArea?>
 <?import javafx.scene.control.TextField?>
 <?import javafx.scene.control.TreeView?>
@@ -82,62 +84,123 @@
                 </TabPane>
             </VBox>
 
-            <!-- Right Dock: Metrics & Diagnostics -->
-            <VBox maxWidth="400.0" minWidth="280.0" prefWidth="340.0" spacing="16" styleClass="right-dock">
-                <!-- Syntax Metric Insights Card -->
-                <VBox styleClass="card, metric-card">
-                    <HBox alignment="CENTER_LEFT" spacing="8" styleClass="card-header">
-                        <Label styleClass="card-title" text="SYNTAX METRIC INSIGHTS" />
-                        <Region HBox.hgrow="ALWAYS" />
-                        <HBox alignment="CENTER_LEFT" spacing="6">
-                            <Label styleClass="badge-label" text="TOTAL ISSUES" />
-                            <Label fx:id="totalIssuesBadge" styleClass="total-issues-pill" text="0" />
-                        </HBox>
-                    </HBox>
-                    <VBox spacing="10" styleClass="card-body">
-                        <HBox alignment="CENTER_LEFT" styleClass="metric-row">
-                            <Label styleClass="metric-label" text="Status" />
-                            <Region HBox.hgrow="ALWAYS" />
-                            <Label fx:id="statusBadgeLabel" styleClass="status-pill, status-idle" text="IDLE" />
-                        </HBox>
-                        <HBox alignment="CENTER_LEFT" styleClass="metric-row">
-                            <Label styleClass="metric-label" text="Errors" />
-                            <Region HBox.hgrow="ALWAYS" />
-                            <Label fx:id="errorCountLabel" styleClass="metric-value" text="0" />
-                        </HBox>
-                        <HBox alignment="CENTER_LEFT" styleClass="metric-row">
-                            <Label styleClass="metric-label" text="Warnings" />
-                            <Region HBox.hgrow="ALWAYS" />
-                            <Label fx:id="warningCountLabel" styleClass="metric-value" text="0" />
-                        </HBox>
-                        <HBox alignment="CENTER_LEFT" styleClass="metric-row">
-                            <Label styleClass="metric-label" text="Valid Lines" />
-                            <Region HBox.hgrow="ALWAYS" />
-                            <Label fx:id="validLinesLabel" styleClass="metric-value" text="0" />
-                        </HBox>
-                        <HBox alignment="CENTER_LEFT" styleClass="metric-row">
-                            <Label styleClass="metric-label" text="Flagged Lines" />
-                            <Region HBox.hgrow="ALWAYS" />
-                            <Label fx:id="flaggedLinesLabel" styleClass="metric-value" text="0" />
-                        </HBox>
-                    </VBox>
-                </VBox>
+            <!-- Right Dock: Insights, Tokens & AST -->
+            <VBox maxWidth="480.0" minWidth="280.0" prefWidth="380.0" spacing="0" styleClass="right-dock">
+                <TabPane fx:id="rightDockTabPane"
+                         styleClass="right-dock-tab-pane"
+                         tabClosingPolicy="UNAVAILABLE"
+                         VBox.vgrow="ALWAYS">
+                    <tabs>
+                        <!-- Tab 1: Insights & Diagnostics -->
+                        <Tab fx:id="insightsTab" text="Insights &amp; Diagnostics">
+                            <VBox spacing="16" styleClass="tab-content-box">
+                                <!-- Syntax Metric Insights Card -->
+                                <VBox styleClass="card, metric-card">
+                                    <HBox alignment="CENTER_LEFT" spacing="8" styleClass="card-header">
+                                        <Label styleClass="card-title" text="SYNTAX METRIC INSIGHTS" />
+                                        <Region HBox.hgrow="ALWAYS" />
+                                        <HBox alignment="CENTER_LEFT" spacing="6">
+                                            <Label styleClass="badge-label" text="TOTAL ISSUES" />
+                                            <Label fx:id="totalIssuesBadge" styleClass="total-issues-pill" text="0" />
+                                        </HBox>
+                                    </HBox>
+                                    <VBox spacing="10" styleClass="card-body">
+                                        <HBox alignment="CENTER_LEFT" styleClass="metric-row">
+                                            <Label styleClass="metric-label" text="Status" />
+                                            <Region HBox.hgrow="ALWAYS" />
+                                            <Label fx:id="statusBadgeLabel" styleClass="status-pill, status-idle" text="IDLE" />
+                                        </HBox>
+                                        <HBox alignment="CENTER_LEFT" styleClass="metric-row">
+                                            <Label styleClass="metric-label" text="Errors" />
+                                            <Region HBox.hgrow="ALWAYS" />
+                                            <Label fx:id="errorCountLabel" styleClass="metric-value" text="0" />
+                                        </HBox>
+                                        <HBox alignment="CENTER_LEFT" styleClass="metric-row">
+                                            <Label styleClass="metric-label" text="Warnings" />
+                                            <Region HBox.hgrow="ALWAYS" />
+                                            <Label fx:id="warningCountLabel" styleClass="metric-value" text="0" />
+                                        </HBox>
+                                        <HBox alignment="CENTER_LEFT" styleClass="metric-row">
+                                            <Label styleClass="metric-label" text="Valid Lines" />
+                                            <Region HBox.hgrow="ALWAYS" />
+                                            <Label fx:id="validLinesLabel" styleClass="metric-value" text="0" />
+                                        </HBox>
+                                        <HBox alignment="CENTER_LEFT" styleClass="metric-row">
+                                            <Label styleClass="metric-label" text="Flagged Lines" />
+                                            <Region HBox.hgrow="ALWAYS" />
+                                            <Label fx:id="flaggedLinesLabel" styleClass="metric-value" text="0" />
+                                        </HBox>
+                                    </VBox>
+                                </VBox>
 
-                <!-- Diagnostics Findings Card -->
-                <VBox styleClass="card, diagnostics-card" VBox.vgrow="ALWAYS">
-                    <HBox alignment="CENTER_LEFT" styleClass="card-header">
-                        <Label styleClass="card-title" text="DIAGNOSTICS" />
-                        <Region HBox.hgrow="ALWAYS" />
-                        <Label fx:id="diagnosticsCountLabel" styleClass="badge-label" text="0 items" />
-                    </HBox>
-                    <ScrollPane fx:id="diagnosticsScrollPane"
-                                fitToHeight="true"
-                                fitToWidth="true"
-                                styleClass="diagnostics-scroll"
-                                VBox.vgrow="ALWAYS">
-                        <VBox fx:id="diagnosticsListContainer" spacing="8" styleClass="diagnostics-list" />
-                    </ScrollPane>
-                </VBox>
+                                <!-- Diagnostics Findings Card -->
+                                <VBox styleClass="card, diagnostics-card" VBox.vgrow="ALWAYS">
+                                    <HBox alignment="CENTER_LEFT" styleClass="card-header">
+                                        <Label styleClass="card-title" text="DIAGNOSTICS" />
+                                        <Region HBox.hgrow="ALWAYS" />
+                                        <Label fx:id="diagnosticsCountLabel" styleClass="badge-label" text="0 items" />
+                                    </HBox>
+                                    <ScrollPane fx:id="diagnosticsScrollPane"
+                                                fitToHeight="true"
+                                                fitToWidth="true"
+                                                styleClass="diagnostics-scroll"
+                                                VBox.vgrow="ALWAYS">
+                                        <VBox fx:id="diagnosticsListContainer" spacing="8" styleClass="diagnostics-list" />
+                                    </ScrollPane>
+                                </VBox>
+                            </VBox>
+                        </Tab>
+
+                        <!-- Tab 2: Tokens Table -->
+                        <Tab fx:id="tokensTab" text="Tokens Table">
+                            <VBox spacing="12" styleClass="tab-content-box, tokens-box">
+                                <TextField fx:id="tokenSearchField"
+                                           promptText="🔍 Filter tokens..."
+                                           styleClass="search-field, token-search-field" />
+                                <TableView fx:id="tokensTableView"
+                                           styleClass="tokens-table-view"
+                                           VBox.vgrow="ALWAYS">
+                                    <columns>
+                                        <TableColumn fx:id="tokenTypeColumn" prefWidth="85.0" text="Type" />
+                                        <TableColumn fx:id="tokenLexemeColumn" prefWidth="105.0" text="Lexeme" />
+                                        <TableColumn fx:id="tokenCoordinatesColumn" prefWidth="70.0" text="Line:Col" />
+                                        <TableColumn fx:id="tokenChannelColumn" prefWidth="75.0" text="Channel" />
+                                    </columns>
+                                    <columnResizePolicy>
+                                        <TableView fx:constant="CONSTRAINED_RESIZE_POLICY" />
+                                    </columnResizePolicy>
+                                </TableView>
+                            </VBox>
+                        </Tab>
+
+                        <!-- Tab 3: AST TreeView -->
+                        <Tab fx:id="astTab" text="AST TreeView">
+                            <VBox spacing="10" styleClass="tab-content-box, ast-box">
+                                <HBox alignment="CENTER_LEFT" spacing="8" styleClass="ast-toolbar">
+                                    <Button fx:id="expandAllButton"
+                                            mnemonicParsing="false"
+                                            onAction="#handleExpandAllAst"
+                                            styleClass="ast-tool-btn"
+                                            text="Expand All" />
+                                    <Button fx:id="collapseAllButton"
+                                            mnemonicParsing="false"
+                                            onAction="#handleCollapseAllAst"
+                                            styleClass="ast-tool-btn"
+                                            text="Collapse All" />
+                                </HBox>
+                                <Label fx:id="astEmptyStateLabel"
+                                       managed="false"
+                                       styleClass="ast-empty-banner"
+                                       text="Syntax Tree unavailable due to syntax errors. Fix diagnostics in the Insights tab to generate complete AST."
+                                       visible="false"
+                                       wrapText="true" />
+                                <TreeView fx:id="astTreeView"
+                                          styleClass="ast-tree-view"
+                                          VBox.vgrow="ALWAYS" />
+                            </VBox>
+                        </Tab>
+                    </tabs>
+                </TabPane>
             </VBox>
         </HBox>
     </center>

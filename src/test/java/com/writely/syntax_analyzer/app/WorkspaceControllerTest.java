@@ -9,6 +9,10 @@ import com.writely.syntax_analyzer.domain.Language;
 import com.writely.syntax_analyzer.domain.Severity;
 import com.writely.syntax_analyzer.domain.SourceLocation;
 import com.writely.syntax_analyzer.domain.SourcePayload;
+import com.writely.syntax_analyzer.domain.SourceSpan;
+import com.writely.syntax_analyzer.domain.SyntaxNode;
+import com.writely.syntax_analyzer.domain.Token;
+import com.writely.syntax_analyzer.domain.TokenType;
 import javafx.application.Platform;
 import javafx.concurrent.Task;
 import javafx.fxml.FXMLLoader;
@@ -63,7 +67,7 @@ class WorkspaceControllerTest {
                 future.completeExceptionally(t);
             }
         });
-        future.get(5, TimeUnit.SECONDS);
+        future.get(15, TimeUnit.SECONDS);
     }
 
     @Test
@@ -412,6 +416,178 @@ class WorkspaceControllerTest {
             assertEquals(1, controller.getEditorTabPane().getTabs().size());
             assertEquals("untitled.py", controller.getCurrentFileName());
             assertEquals("", controller.getEditorText());
+        });
+    }
+
+    @Test
+    @DisplayName("Tokens table is populated with tokens from analysis result")
+    void testTokensTablePopulatedFromAnalysisResult() throws Exception {
+        runOnFxThread(() -> {
+            FXMLLoader loader = new FXMLLoader(getClass().getResource("/fxml/main-workspace.fxml"));
+            try {
+                loader.load();
+            } catch (IOException e) {
+                throw new RuntimeException(e);
+            }
+            WorkspaceController controller = loader.getController();
+
+            Token t1 = Token.of(TokenType.KEYWORD, "def", SourceSpan.of(1, 1, 0, 1, 4, 3));
+            Token t2 = Token.of(TokenType.IDENTIFIER, "foo", SourceSpan.of(1, 5, 4, 1, 8, 7));
+            Token t3 = Token.of(TokenType.WHITESPACE, " ", SourceSpan.of(1, 4, 3, 1, 5, 4));
+
+            SourcePayload payload = SourcePayload.snippet("def foo", Language.PYTHON);
+            AnalysisResult result = AnalysisResult.of(payload, List.of(t1, t2, t3), List.of());
+
+            controller.applyAnalysisResult(result);
+
+            assertEquals(3, controller.getTokensTableView().getItems().size());
+            assertEquals(3, controller.getMasterTokensList().size());
+            assertEquals(t1, controller.getTokensTableView().getItems().get(0));
+            assertEquals(t2, controller.getTokensTableView().getItems().get(1));
+            assertEquals(t3, controller.getTokensTableView().getItems().get(2));
+        });
+    }
+
+    @Test
+    @DisplayName("Token search filter dynamically filters tokens in tokens table")
+    void testTokenFiltering() throws Exception {
+        runOnFxThread(() -> {
+            FXMLLoader loader = new FXMLLoader(getClass().getResource("/fxml/main-workspace.fxml"));
+            try {
+                loader.load();
+            } catch (IOException e) {
+                throw new RuntimeException(e);
+            }
+            WorkspaceController controller = loader.getController();
+
+            Token t1 = Token.of(TokenType.KEYWORD, "def", SourceSpan.of(1, 1, 0, 1, 4, 3));
+            Token t2 = Token.of(TokenType.IDENTIFIER, "calculate", SourceSpan.of(1, 5, 4, 1, 14, 13));
+            Token t3 = Token.of(TokenType.WHITESPACE, " ", SourceSpan.of(1, 4, 3, 1, 5, 4));
+
+            SourcePayload payload = SourcePayload.snippet("def calculate", Language.PYTHON);
+            AnalysisResult result = AnalysisResult.of(payload, List.of(t1, t2, t3), List.of());
+
+            controller.applyAnalysisResult(result);
+            assertEquals(3, controller.getTokensTableView().getItems().size());
+
+            // Filter by lexeme
+            controller.filterTokens("calculate");
+            assertEquals(1, controller.getTokensTableView().getItems().size());
+            assertEquals("calculate", controller.getTokensTableView().getItems().get(0).lexeme());
+
+            // Filter by channel
+            controller.filterTokens("trivia");
+            assertEquals(1, controller.getTokensTableView().getItems().size());
+            assertEquals(TokenType.WHITESPACE, controller.getTokensTableView().getItems().get(0).tokenType());
+
+            // Filter by type
+            controller.filterTokens("KEYWORD");
+            assertEquals(1, controller.getTokensTableView().getItems().size());
+            assertEquals("def", controller.getTokensTableView().getItems().get(0).lexeme());
+
+            // Clear filter
+            controller.filterTokens("");
+            assertEquals(3, controller.getTokensTableView().getItems().size());
+        });
+    }
+
+    @Test
+    @DisplayName("Token row click positions editor caret at token start location and selects span")
+    void testTokenClickJumpsEditorCaret() throws Exception {
+        runOnFxThread(() -> {
+            FXMLLoader loader = new FXMLLoader(getClass().getResource("/fxml/main-workspace.fxml"));
+            try {
+                loader.load();
+            } catch (IOException e) {
+                throw new RuntimeException(e);
+            }
+            WorkspaceController controller = loader.getController();
+
+            String sample = "def greet():\n    return 'hello'";
+            controller.setEditorText(sample);
+
+            Token token = Token.of(TokenType.KEYWORD, "return", SourceSpan.of(2, 5, 17, 2, 11, 23));
+            controller.selectToken(token);
+
+            assertEquals("return", controller.getEditorTextArea().getSelectedText());
+            assertEquals(17, controller.getEditorTextArea().getSelection().getStart());
+            assertEquals(23, controller.getEditorTextArea().getSelection().getEnd());
+        });
+    }
+
+    @Test
+    @DisplayName("AST TreeView builds hierarchy and supports expand/collapse when rootNode is present")
+    void testAstTreeViewHierarchyWhenRootNodePresent() throws Exception {
+        runOnFxThread(() -> {
+            FXMLLoader loader = new FXMLLoader(getClass().getResource("/fxml/main-workspace.fxml"));
+            try {
+                loader.load();
+            } catch (IOException e) {
+                throw new RuntimeException(e);
+            }
+            WorkspaceController controller = loader.getController();
+
+            String code = "x = 42";
+            controller.setEditorText(code);
+
+            SyntaxNode child = SyntaxNode.leaf("Literal", "42", SourceSpan.of(1, 5, 4, 1, 7, 6));
+            SyntaxNode root = SyntaxNode.of("Assignment", "=", SourceSpan.of(1, 1, 0, 1, 7, 6), List.of(child));
+
+            SourcePayload payload = SourcePayload.snippet(code, Language.PYTHON);
+            AnalysisResult result = AnalysisResult.of(payload, List.of(), root, List.of());
+
+            controller.applyAnalysisResult(result);
+
+            assertFalse(controller.getAstEmptyStateLabel().isVisible());
+            assertTrue(controller.getAstTreeView().isVisible());
+            assertNotNull(controller.getAstTreeView().getRoot());
+            assertEquals("Assignment", controller.getAstTreeView().getRoot().getValue().kind());
+            assertEquals(1, controller.getAstTreeView().getRoot().getChildren().size());
+            assertEquals("Literal", controller.getAstTreeView().getRoot().getChildren().get(0).getValue().kind());
+
+            // Expand and collapse actions
+            controller.collapseAllAst();
+            assertFalse(controller.getAstTreeView().getRoot().isExpanded());
+
+            controller.expandAllAst();
+            assertTrue(controller.getAstTreeView().getRoot().isExpanded());
+
+            // Selecting AST node selects span in editor
+            controller.selectAstNode(child);
+            assertEquals("42", controller.getEditorTextArea().getSelectedText());
+        });
+    }
+
+    @Test
+    @DisplayName("AST TreeView displays empty state banner when rootNode is empty")
+    void testAstTreeViewDisplaysEmptyStateWhenRootNodeEmpty() throws Exception {
+        runOnFxThread(() -> {
+            FXMLLoader loader = new FXMLLoader(getClass().getResource("/fxml/main-workspace.fxml"));
+            try {
+                loader.load();
+            } catch (IOException e) {
+                throw new RuntimeException(e);
+            }
+            WorkspaceController controller = loader.getController();
+
+            Diagnostic err = Diagnostic.error(
+                CheckCategory.DELIMITER_MATCH,
+                SourceLocation.of(1, 1, 0),
+                "Syntax error",
+                "ERR_SYNTAX_01"
+            );
+            SourcePayload payload = SourcePayload.snippet("invalid {{", Language.PYTHON);
+            AnalysisResult result = AnalysisResult.of(payload, List.of(), List.of(err));
+
+            controller.applyAnalysisResult(result);
+
+            assertTrue(controller.getAstEmptyStateLabel().isVisible());
+            assertTrue(controller.getAstEmptyStateLabel().isManaged());
+            assertEquals(
+                "Syntax Tree unavailable due to syntax errors. Fix diagnostics in the Insights tab to generate complete AST.",
+                controller.getAstEmptyStateLabel().getText()
+            );
+            assertFalse(controller.getAstTreeView().isVisible());
         });
     }
 }

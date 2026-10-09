@@ -11,6 +11,9 @@ import com.writely.syntax_analyzer.domain.Language;
 import com.writely.syntax_analyzer.domain.Severity;
 import com.writely.syntax_analyzer.domain.SourceLocation;
 import com.writely.syntax_analyzer.domain.SourcePayload;
+import com.writely.syntax_analyzer.domain.SourceSpan;
+import com.writely.syntax_analyzer.domain.SyntaxNode;
+import com.writely.syntax_analyzer.domain.Token;
 import javafx.application.Platform;
 import javafx.beans.property.BooleanProperty;
 import javafx.beans.property.ObjectProperty;
@@ -18,6 +21,9 @@ import javafx.beans.property.SimpleBooleanProperty;
 import javafx.beans.property.SimpleObjectProperty;
 import javafx.beans.property.SimpleStringProperty;
 import javafx.beans.property.StringProperty;
+import javafx.collections.FXCollections;
+import javafx.collections.ObservableList;
+import javafx.collections.transformation.FilteredList;
 import javafx.concurrent.Task;
 import javafx.event.ActionEvent;
 import javafx.fxml.FXML;
@@ -28,8 +34,12 @@ import javafx.scene.control.Label;
 import javafx.scene.control.ScrollPane;
 import javafx.scene.control.Tab;
 import javafx.scene.control.TabPane;
+import javafx.scene.control.TableColumn;
+import javafx.scene.control.TableRow;
+import javafx.scene.control.TableView;
 import javafx.scene.control.TextArea;
 import javafx.scene.control.TextField;
+import javafx.scene.control.TreeCell;
 import javafx.scene.control.TreeItem;
 import javafx.scene.control.TreeView;
 import javafx.scene.layout.BorderPane;
@@ -111,6 +121,26 @@ public class WorkspaceController implements Initializable {
     @FXML private Label footerLinesLabel;
     @FXML private Label footerTokensLabel;
 
+    // Right Dock Tabs & Inspection Views
+    @FXML private TabPane rightDockTabPane;
+    @FXML private Tab insightsTab;
+    @FXML private Tab tokensTab;
+    @FXML private Tab astTab;
+    @FXML private TextField tokenSearchField;
+    @FXML private TableView<Token> tokensTableView;
+    @FXML private TableColumn<Token, String> tokenTypeColumn;
+    @FXML private TableColumn<Token, String> tokenLexemeColumn;
+    @FXML private TableColumn<Token, String> tokenCoordinatesColumn;
+    @FXML private TableColumn<Token, String> tokenChannelColumn;
+    @FXML private Button expandAllButton;
+    @FXML private Button collapseAllButton;
+    @FXML private Label astEmptyStateLabel;
+    @FXML private TreeView<SyntaxNode> astTreeView;
+
+    // Tokens inspection data collections
+    private final ObservableList<Token> masterTokensList = FXCollections.observableArrayList();
+    private FilteredList<Token> filteredTokensList;
+
     // Services
     private SourceIngestionService ingestionService;
     private AnalysisOrchestrator orchestrator;
@@ -145,6 +175,8 @@ public class WorkspaceController implements Initializable {
         setupLineGutter();
         setupFileExplorer();
         setupEditor();
+        setupTokensTable();
+        setupAstTreeView();
         updateInitialStatus();
     }
 
@@ -217,6 +249,101 @@ public class WorkspaceController implements Initializable {
         if (searchField != null) {
             searchField.textProperty().addListener((obs, oldVal, newVal) -> filterTree(newVal));
         }
+    }
+
+    private void setupTokensTable() {
+        if (tokensTableView == null) {
+            return;
+        }
+
+        if (tokenTypeColumn != null) {
+            tokenTypeColumn.setCellValueFactory(cellData -> {
+                Token t = cellData.getValue();
+                return new SimpleStringProperty(t != null && t.tokenType() != null ? t.tokenType().name() : "");
+            });
+        }
+        if (tokenLexemeColumn != null) {
+            tokenLexemeColumn.setCellValueFactory(cellData -> {
+                Token t = cellData.getValue();
+                return new SimpleStringProperty(t != null && t.lexeme() != null ? t.lexeme() : "");
+            });
+        }
+        if (tokenCoordinatesColumn != null) {
+            tokenCoordinatesColumn.setCellValueFactory(cellData -> {
+                Token t = cellData.getValue();
+                if (t != null && t.startLocation() != null) {
+                    return new SimpleStringProperty(t.startLocation().line() + ":" + t.startLocation().column());
+                }
+                return new SimpleStringProperty("--");
+            });
+        }
+        if (tokenChannelColumn != null) {
+            tokenChannelColumn.setCellValueFactory(cellData -> {
+                Token t = cellData.getValue();
+                return new SimpleStringProperty(t != null && t.isTrivia() ? "TRIVIA" : "DEFAULT");
+            });
+        }
+
+        filteredTokensList = new FilteredList<>(masterTokensList, p -> true);
+        tokensTableView.setItems(filteredTokensList);
+
+        if (tokenSearchField != null) {
+            tokenSearchField.textProperty().addListener((obs, oldVal, newVal) -> filterTokens(newVal));
+        }
+
+        tokensTableView.setRowFactory(tv -> {
+            TableRow<Token> row = new TableRow<>();
+            row.setOnMouseClicked(event -> {
+                if (!row.isEmpty() && row.getItem() != null) {
+                    selectToken(row.getItem());
+                }
+            });
+            return row;
+        });
+
+        tokensTableView.getSelectionModel().selectedItemProperty().addListener((obs, oldVal, newVal) -> {
+            if (newVal != null) {
+                selectToken(newVal);
+            }
+        });
+    }
+
+    private void setupAstTreeView() {
+        if (astTreeView == null) {
+            return;
+        }
+
+        astTreeView.setCellFactory(tv -> {
+            TreeCell<SyntaxNode> cell = new TreeCell<>() {
+                @Override
+                protected void updateItem(SyntaxNode node, boolean empty) {
+                    super.updateItem(node, empty);
+                    if (empty || node == null) {
+                        setText(null);
+                        setGraphic(null);
+                    } else {
+                        SourceLocation loc = node.span() != null ? node.span().start() : null;
+                        String coord = loc != null ? " [" + loc.line() + ":" + loc.column() + "]" : "";
+                        String labelInfo = (node.label() != null && !node.label().isBlank() && !node.label().equals(node.kind()))
+                            ? " (" + node.label() + ")"
+                            : "";
+                        setText(node.kind() + labelInfo + coord);
+                    }
+                }
+            };
+            cell.setOnMouseClicked(event -> {
+                if (!cell.isEmpty() && cell.getItem() != null) {
+                    selectAstNode(cell.getItem());
+                }
+            });
+            return cell;
+        });
+
+        astTreeView.getSelectionModel().selectedItemProperty().addListener((obs, oldVal, newVal) -> {
+            if (newVal != null && newVal.getValue() != null) {
+                selectAstNode(newVal.getValue());
+            }
+        });
     }
 
     private Node createLanguageIcon(Language language) {
@@ -617,6 +744,185 @@ public class WorkspaceController implements Initializable {
         }
 
         renderDiagnostics(result);
+        renderTokens(result);
+        renderAst(result);
+    }
+
+    private void renderTokens(AnalysisResult result) {
+        masterTokensList.setAll(result.tokens());
+        if (tokenSearchField != null && tokenSearchField.getText() != null && !tokenSearchField.getText().isBlank()) {
+            filterTokens(tokenSearchField.getText());
+        }
+    }
+
+    private void renderAst(AnalysisResult result) {
+        java.util.Optional<SyntaxNode> rootNode = result.rootNode();
+        if (rootNode.isPresent()) {
+            if (astEmptyStateLabel != null) {
+                astEmptyStateLabel.setVisible(false);
+                astEmptyStateLabel.setManaged(false);
+            }
+            if (astTreeView != null) {
+                astTreeView.setVisible(true);
+                astTreeView.setManaged(true);
+                astTreeView.setRoot(buildAstTree(rootNode.get()));
+            }
+            if (expandAllButton != null) {
+                expandAllButton.setDisable(false);
+            }
+            if (collapseAllButton != null) {
+                collapseAllButton.setDisable(false);
+            }
+        } else {
+            if (astEmptyStateLabel != null) {
+                astEmptyStateLabel.setVisible(true);
+                astEmptyStateLabel.setManaged(true);
+            }
+            if (astTreeView != null) {
+                astTreeView.setRoot(null);
+                astTreeView.setVisible(false);
+                astTreeView.setManaged(false);
+            }
+            if (expandAllButton != null) {
+                expandAllButton.setDisable(true);
+            }
+            if (collapseAllButton != null) {
+                collapseAllButton.setDisable(true);
+            }
+        }
+    }
+
+    public TreeItem<SyntaxNode> buildAstTree(SyntaxNode node) {
+        if (node == null) {
+            return null;
+        }
+        TreeItem<SyntaxNode> item = new TreeItem<>(node);
+        item.setExpanded(true);
+        for (SyntaxNode child : node.children()) {
+            item.getChildren().add(buildAstTree(child));
+        }
+        return item;
+    }
+
+    public void filterTokens(String query) {
+        if (filteredTokensList == null) {
+            return;
+        }
+        if (query == null || query.isBlank()) {
+            filteredTokensList.setPredicate(token -> true);
+            return;
+        }
+        String lower = query.toLowerCase().trim();
+        filteredTokensList.setPredicate(token -> {
+            if (token == null) {
+                return false;
+            }
+            if (token.tokenType() != null && token.tokenType().name().toLowerCase().contains(lower)) {
+                return true;
+            }
+            if (token.lexeme() != null && token.lexeme().toLowerCase().contains(lower)) {
+                return true;
+            }
+            if (token.startLocation() != null) {
+                String coords = token.startLocation().line() + ":" + token.startLocation().column();
+                if (coords.contains(lower)) {
+                    return true;
+                }
+            }
+            String channel = token.isTrivia() ? "trivia" : "default";
+            return channel.contains(lower);
+        });
+    }
+
+    public void selectToken(Token token) {
+        if (token == null || editorTextArea == null) {
+            return;
+        }
+        jumpToLocation(token.startLocation());
+        if (token.span() != null) {
+            selectSpan(token.span());
+        }
+    }
+
+    public void selectAstNode(SyntaxNode node) {
+        if (node == null || node.span() == null || editorTextArea == null) {
+            return;
+        }
+        jumpToLocation(node.span().start());
+        selectSpan(node.span());
+    }
+
+    public void selectSpan(SourceSpan span) {
+        if (span == null || editorTextArea == null) {
+            return;
+        }
+        int startOffset = locationToOffset(span.start());
+        int endOffset = locationToOffset(span.end());
+        if (endOffset < startOffset) {
+            endOffset = startOffset;
+        }
+        editorTextArea.selectRange(startOffset, endOffset);
+        editorTextArea.requestFocus();
+    }
+
+    public int locationToOffset(SourceLocation location) {
+        if (location == null || editorTextArea == null) {
+            return 0;
+        }
+        String text = editorTextArea.getText();
+        if (text == null || text.isEmpty()) {
+            return 0;
+        }
+        if (location.charOffset() > 0 && location.charOffset() <= text.length()) {
+            return location.charOffset();
+        }
+        int targetLine = location.line();
+        if (targetLine <= 1) {
+            return Math.min(Math.max(0, location.column() - 1), text.length());
+        }
+        int currentLine = 1;
+        for (int i = 0; i < text.length(); i++) {
+            if (text.charAt(i) == '\n') {
+                currentLine++;
+                if (currentLine == targetLine) {
+                    int offset = (i + 1) + Math.max(0, location.column() - 1);
+                    return Math.min(offset, text.length());
+                }
+            }
+        }
+        return text.length();
+    }
+
+    @FXML
+    public void handleExpandAllAst(ActionEvent event) {
+        expandAllAst();
+    }
+
+    @FXML
+    public void handleCollapseAllAst(ActionEvent event) {
+        collapseAllAst();
+    }
+
+    public void expandAllAst() {
+        if (astTreeView != null && astTreeView.getRoot() != null) {
+            setAstExpanded(astTreeView.getRoot(), true);
+        }
+    }
+
+    public void collapseAllAst() {
+        if (astTreeView != null && astTreeView.getRoot() != null) {
+            setAstExpanded(astTreeView.getRoot(), false);
+        }
+    }
+
+    private void setAstExpanded(TreeItem<SyntaxNode> item, boolean expanded) {
+        if (item == null) {
+            return;
+        }
+        item.setExpanded(expanded);
+        for (TreeItem<SyntaxNode> child : item.getChildren()) {
+            setAstExpanded(child, expanded);
+        }
     }
 
     private void renderDiagnostics(AnalysisResult result) {
@@ -820,5 +1126,69 @@ public class WorkspaceController implements Initializable {
 
     public Button getDeepScanButton() {
         return deepScanButton;
+    }
+
+    public TableView<Token> getTokensTableView() {
+        return tokensTableView;
+    }
+
+    public TextField getTokenSearchField() {
+        return tokenSearchField;
+    }
+
+    public TreeView<SyntaxNode> getAstTreeView() {
+        return astTreeView;
+    }
+
+    public Label getAstEmptyStateLabel() {
+        return astEmptyStateLabel;
+    }
+
+    public TabPane getRightDockTabPane() {
+        return rightDockTabPane;
+    }
+
+    public Tab getInsightsTab() {
+        return insightsTab;
+    }
+
+    public Tab getTokensTab() {
+        return tokensTab;
+    }
+
+    public Tab getAstTab() {
+        return astTab;
+    }
+
+    public Button getExpandAllButton() {
+        return expandAllButton;
+    }
+
+    public Button getCollapseAllButton() {
+        return collapseAllButton;
+    }
+
+    public ObservableList<Token> getMasterTokensList() {
+        return masterTokensList;
+    }
+
+    public FilteredList<Token> getFilteredTokensList() {
+        return filteredTokensList;
+    }
+
+    public TableColumn<Token, String> getTokenTypeColumn() {
+        return tokenTypeColumn;
+    }
+
+    public TableColumn<Token, String> getTokenLexemeColumn() {
+        return tokenLexemeColumn;
+    }
+
+    public TableColumn<Token, String> getTokenCoordinatesColumn() {
+        return tokenCoordinatesColumn;
+    }
+
+    public TableColumn<Token, String> getTokenChannelColumn() {
+        return tokenChannelColumn;
     }
 }
