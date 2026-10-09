@@ -1,0 +1,500 @@
+/* ==========================================================================
+   writely - Dark Mode Workspace Theme
+   Design Tokens from docs/agents/ui_look_reference/color_system_writely.json
+   Canvas:           #060A13
+   Surface Subtle:   #0B1326
+   Surface Elevated: #111C38
+   Border Subtle:    #1A284D
+   Border Focus:     #2D4480
+   Primary Royal:    #2563EB
+   Primary Glow:     #3B82F6
+   Primary Dark:     #1D4ED8
+   Accent Yellow:    #FACC15
+   Accent Bright:    #FDE047
+   Text Primary:     #F8FAFC
+   Text Secondary:   #94A3B8
+   Text Tertiary:    #64748B
+   ========================================================================== */
+
+/* Root Window & Canvas */
+.root {
+    -fx-base: #060A13;
+    -fx-background-color: #060A13;
+    -fx-font-family: -apple-system, BlinkMacSystemFont, "Segoe UI", Roboto, "Helvetica Neue", Arial, sans-serif;
+    -fx-text-fill: #F8FAFC;
+}
+
+.root-pane {
+    -fx-background-color: #060A13;
+}
+
+/* ==========================================================================
+   Header Bar
+   ========================================================================== */
+.header-bar {
+    -fx-background-color: #060A13;
+    -fx-padding: 14 24 14 24;
+    -fx-alignment: center-left;
+    -fx-border-color: #1A284D;
+    -fx-border-width: 0 0 1 0;
+}
+
+.brand-logo {
+    -fx-text-fill: #FACC15;
+    -fx-font-size: 26px;
+    -fx-font-weight: bold;
+    -fx-font-family: -apple-system, BlinkMacSystemFont, "Segoe UI", Roboto, sans-serif;
+}
+
+/* Primary CTA Button: Initiate Deep Scan */
+.btn-deep-scan {
+    -fx-background-color: #FACC15;
+    -fx-text-fill: #060A13;
+    -fx-font-weight: bold;
+    -fx-font-size: 13px;
+    -fx-background-radius: 8px;
+    -fx-padding: 8 18 8 18;
+    -fx-cursor: hand;
+    -fx-border-color: transparent;
+    -fx-effect: dropshadow(gaussian, rgba(250, 204, 21, 0.25), 6, 0, 0, 2);
+}
+
+.btn-deep-scan:hover {
+    -fx-background-color: #FDE047;
+    -fx-effect: dropshadow(gaussian, rgba(253, 224, 71, 0.4), 8, 0, 0, 2);
+}
+
+.btn-deep-scan:pressed {
+    -fx-background-color: #EAB308;
+}
+
+.btn-deep-scan:disabled {
+    -fx-opacity: 0.6;
+}
+
+/* Secondary CTA Button: Ingest File */
+.btn-ingest {
+    -fx-background-color: #2563EB;
+    -fx-text-fill: #F8FAFC;
+    -fx-font-weight: bold;
+    -fx-font-size: 13px;
+    -fx-background-radius: 8px;
+    -fx-padding: 8 18 8 18;
+    -fx-cursor: hand;
+    -fx-border-color: transparent;
+    -fx-effect: dropshadow(gaussian, rgba(37, 99, 235, 0.25), 6, 0, 0, 2);
+}
+
+.btn-ingest:hover {
+    -fx-background-color: #3B82F6;
+    -fx-effect: dropshadow(gaussian, rgba(59, 130, 246, 0.4), 8, 0, 0, 2);
+}
+
+.btn-ingest:pressed {
+    -fx-background-color: #1D4ED8;
+}
+
+/* ==========================================================================
+   Workspace Layout
+   ========================================================================== */
+.workspace-body {
+    -fx-background-color: #060A13;
+    -fx-padding: 16 20 16 20;
+}
+
+/* ==========================================================================
+   Left Pane: File Explorer
+   ========================================================================== */
+.explorer-pane {
+    -fx-background-color: #060A13;
+    -fx-padding: 0 8 0 0;
+}
+
+.search-field {
+    -fx-background-color: #0B1326;
+    -fx-text-fill: #F8FAFC;
+    -fx-prompt-text-fill: #64748B;
+    -fx-border-color: #1A284D;
+    -fx-border-radius: 8px;
+    -fx-background-radius: 8px;
+    -fx-padding: 9 12 9 12;
+    -fx-font-size: 13px;
+}
+
+.search-field:focused {
+    -fx-border-color: #2D4480;
+    -fx-background-color: #0B1326;
+}
+
+.file-tree-view {
+    -fx-background-color: transparent;
+    -fx-border-color: transparent;
+    -fx-padding: 4 0 4 0;
+}
+
+.file-tree-view .tree-cell {
+    -fx-background-color: transparent;
+    -fx-text-fill: #94A3B8;
+    -fx-font-size: 13px;
+    -fx-padding: 6 10 6 10;
+    -fx-background-radius: 6px;
+    -fx-cursor: hand;
+}
+
+.file-tree-view .tree-cell:filled:selected {
+    -fx-background-color: #111C38;
+    -fx-text-fill: #F8FAFC;
+    -fx-font-weight: bold;
+}
+
+.file-tree-view .tree-cell:filled:hover {
+    -fx-background-color: #0B1326;
+    -fx-text-fill: #F8FAFC;
+}
+
+.file-tree-view .tree-disclosure-node .arrow {
+    -fx-background-color: #64748B;
+}
+
+.new-folder-btn {
+    -fx-background-color: #0B1326;
+    -fx-text-fill: #94A3B8;
+    -fx-border-color: #1A284D;
+    -fx-border-radius: 8px;
+    -fx-background-radius: 8px;
+    -fx-padding: 9 16 9 16;
+    -fx-font-size: 13px;
+    -fx-cursor: hand;
+    -fx-alignment: center-left;
+}
+
+.new-folder-btn:hover {
+    -fx-background-color: #111C38;
+    -fx-text-fill: #F8FAFC;
+    -fx-border-color: #2D4480;
+}
+
+/* ==========================================================================
+   Center Pane: Editor & Tabs
+   ========================================================================== */
+.editor-pane {
+    -fx-background-color: #0B1326;
+    -fx-border-color: #1A284D;
+    -fx-border-radius: 12px;
+    -fx-background-radius: 12px;
+    -fx-border-width: 1px;
+}
+
+.editor-tab-pane {
+    -fx-tab-min-height: 40px;
+    -fx-tab-max-height: 40px;
+    -fx-background-color: transparent;
+}
+
+.editor-tab-pane .tab-header-area {
+    -fx-padding: 0 0 0 0;
+    -fx-background-color: #0B1326;
+    -fx-border-color: #1A284D;
+    -fx-border-width: 0 0 1 0;
+    -fx-background-radius: 11 11 0 0;
+}
+
+.editor-tab-pane .tab-header-background {
+    -fx-background-color: #0B1326;
+    -fx-background-radius: 11 11 0 0;
+}
+
+.editor-tab-pane .tab {
+    -fx-background-color: #0B1326;
+    -fx-border-color: #1A284D;
+    -fx-border-width: 1 1 0 1;
+    -fx-border-radius: 8 8 0 0;
+    -fx-background-radius: 8 8 0 0;
+    -fx-padding: 6 16 6 16;
+}
+
+.editor-tab-pane .tab:selected {
+    -fx-background-color: #111C38;
+    -fx-border-color: #2D4480;
+}
+
+.editor-tab-pane .tab .tab-label {
+    -fx-text-fill: #94A3B8;
+    -fx-font-family: "JetBrains Mono", "JetBrainsMono Nerd Font", "DejaVu Sans Mono", monospace;
+    -fx-font-size: 13px;
+}
+
+.editor-tab-pane .tab:selected .tab-label {
+    -fx-text-fill: #F8FAFC;
+    -fx-font-weight: bold;
+}
+
+.editor-tab-pane .tab-close-button {
+    -fx-background-color: #94A3B8;
+    -fx-cursor: hand;
+}
+
+.editor-tab-pane .tab-close-button:hover {
+    -fx-background-color: #F8FAFC;
+}
+
+.editor-content-box {
+    -fx-background-color: #0B1326;
+    -fx-background-radius: 0 0 11 11;
+}
+
+/* Line Number Gutter */
+.line-gutter {
+    -fx-font-family: "JetBrains Mono", "JetBrainsMono Nerd Font", "DejaVu Sans Mono", monospace;
+    -fx-font-size: 13px;
+    -fx-text-fill: #64748B;
+    -fx-background-color: #0B1326;
+    -fx-border-color: transparent #1A284D transparent transparent;
+    -fx-border-width: 0 1 0 0;
+    -fx-padding: 12 6 12 8;
+    -fx-highlight-fill: transparent;
+    -fx-highlight-text-fill: #64748B;
+}
+
+.line-gutter .content {
+    -fx-background-color: #0B1326;
+}
+
+.line-gutter .scroll-bar {
+    -fx-opacity: 0;
+    -fx-pref-width: 0;
+    -fx-max-width: 0;
+}
+
+/* Code Editor TextArea */
+.code-editor {
+    -fx-font-family: "JetBrains Mono", "JetBrainsMono Nerd Font", "DejaVu Sans Mono", monospace;
+    -fx-font-size: 13px;
+    -fx-text-fill: #F8FAFC;
+    -fx-background-color: #0B1326;
+    -fx-highlight-fill: #2563EB;
+    -fx-highlight-text-fill: #F8FAFC;
+    -fx-border-color: transparent;
+    -fx-padding: 12 14 12 14;
+}
+
+.code-editor .content {
+    -fx-background-color: #0B1326;
+}
+
+/* ==========================================================================
+   Right Dock: Metric Insights & Diagnostics Cards
+   ========================================================================== */
+.right-dock {
+    -fx-background-color: #060A13;
+}
+
+.card {
+    -fx-background-color: #0B1326;
+    -fx-border-color: #1A284D;
+    -fx-border-radius: 12px;
+    -fx-background-radius: 12px;
+    -fx-border-width: 1px;
+}
+
+.card-header {
+    -fx-background-color: #111C38;
+    -fx-padding: 12 16 12 16;
+    -fx-background-radius: 11 11 0 0;
+    -fx-alignment: center-left;
+    -fx-border-color: #1A284D;
+    -fx-border-width: 0 0 1 0;
+}
+
+.card-title {
+    -fx-text-fill: #F8FAFC;
+    -fx-font-size: 12px;
+    -fx-font-weight: bold;
+    -fx-letter-spacing: 0.5px;
+}
+
+.badge-label {
+    -fx-text-fill: #94A3B8;
+    -fx-font-size: 11px;
+    -fx-font-weight: bold;
+}
+
+.total-issues-pill {
+    -fx-background-color: #FACC15;
+    -fx-text-fill: #060A13;
+    -fx-font-weight: bold;
+    -fx-font-size: 12px;
+    -fx-background-radius: 12px;
+    -fx-padding: 2 10 2 10;
+    -fx-alignment: center;
+}
+
+.card-body {
+    -fx-padding: 14 16 14 16;
+}
+
+.metric-row {
+    -fx-alignment: center-left;
+    -fx-padding: 4 0 4 0;
+}
+
+.metric-label {
+    -fx-text-fill: #94A3B8;
+    -fx-font-size: 12px;
+}
+
+.metric-value {
+    -fx-text-fill: #F8FAFC;
+    -fx-font-size: 13px;
+    -fx-font-weight: bold;
+}
+
+/* Status Pills */
+.status-pill {
+    -fx-font-size: 11px;
+    -fx-font-weight: bold;
+    -fx-padding: 3 8 3 8;
+    -fx-background-radius: 6px;
+    -fx-alignment: center;
+}
+
+.status-idle {
+    -fx-background-color: #111C38;
+    -fx-text-fill: #94A3B8;
+}
+
+.status-analyzing {
+    -fx-background-color: #1E3A8A;
+    -fx-text-fill: #60A5FA;
+}
+
+.status-passed {
+    -fx-background-color: #064E3B;
+    -fx-text-fill: #34D399;
+}
+
+.status-failed {
+    -fx-background-color: #450A0A;
+    -fx-text-fill: #F87171;
+}
+
+/* Diagnostics Findings List */
+.diagnostics-scroll {
+    -fx-background-color: transparent;
+    -fx-border-color: transparent;
+    -fx-padding: 0;
+}
+
+.diagnostics-scroll > .viewport {
+    -fx-background-color: transparent;
+}
+
+.diagnostics-list {
+    -fx-background-color: transparent;
+    -fx-padding: 12 16 16 16;
+}
+
+.diagnostic-item {
+    -fx-background-color: #0B1326;
+    -fx-padding: 10 12 10 12;
+    -fx-background-radius: 8px;
+    -fx-border-color: #1A284D;
+    -fx-border-radius: 8px;
+    -fx-border-width: 1px;
+    -fx-cursor: hand;
+    -fx-alignment: center-left;
+}
+
+.diagnostic-item:hover {
+    -fx-background-color: #111C38;
+    -fx-border-color: #2D4480;
+}
+
+.line-number-badge {
+    -fx-background-color: #111C38;
+    -fx-text-fill: #94A3B8;
+    -fx-font-weight: bold;
+    -fx-font-size: 12px;
+    -fx-font-family: "JetBrains Mono", "JetBrainsMono Nerd Font", "DejaVu Sans Mono", monospace;
+    -fx-min-width: 28px;
+    -fx-max-width: 28px;
+    -fx-min-height: 28px;
+    -fx-max-height: 28px;
+    -fx-alignment: center;
+    -fx-background-radius: 6px;
+}
+
+.diag-error-title {
+    -fx-text-fill: #EF4444;
+    -fx-font-size: 13px;
+    -fx-font-weight: bold;
+}
+
+.diag-warning-title {
+    -fx-text-fill: #FACC15;
+    -fx-font-size: 13px;
+    -fx-font-weight: bold;
+}
+
+.diag-info-title {
+    -fx-text-fill: #3B82F6;
+    -fx-font-size: 13px;
+    -fx-font-weight: bold;
+}
+
+.diag-description {
+    -fx-text-fill: #94A3B8;
+    -fx-font-size: 12px;
+}
+
+/* ==========================================================================
+   Footer Status Bar
+   ========================================================================== */
+.footer-bar {
+    -fx-background-color: #060A13;
+    -fx-padding: 8 20 8 20;
+    -fx-border-color: #1A284D;
+    -fx-border-width: 1 0 0 0;
+    -fx-alignment: center-left;
+}
+
+.footer-item {
+    -fx-text-fill: #64748B;
+    -fx-font-size: 12px;
+}
+
+/* ==========================================================================
+   Scrollbars
+   ========================================================================== */
+.scroll-bar {
+    -fx-background-color: transparent;
+}
+
+.scroll-bar:vertical .track,
+.scroll-bar:horizontal .track {
+    -fx-background-color: transparent;
+    -fx-border-color: transparent;
+}
+
+.scroll-bar:vertical .thumb,
+.scroll-bar:horizontal .thumb {
+    -fx-background-color: #1A284D;
+    -fx-background-radius: 4px;
+}
+
+.scroll-bar:vertical .thumb:hover,
+.scroll-bar:horizontal .thumb:hover {
+    -fx-background-color: #2D4480;
+}
+
+.scroll-bar .increment-button,
+.scroll-bar .decrement-button {
+    -fx-background-color: transparent;
+    -fx-padding: 0;
+}
+
+.scroll-bar .increment-arrow,
+.scroll-bar .decrement-arrow {
+    -fx-shape: " ";
+    -fx-padding: 0;
+}

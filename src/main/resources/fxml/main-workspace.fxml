@@ -1,0 +1,156 @@
+<?xml version="1.0" encoding="UTF-8"?>
+
+<?import javafx.geometry.Insets?>
+<?import javafx.scene.control.Button?>
+<?import javafx.scene.control.Label?>
+<?import javafx.scene.control.ScrollPane?>
+<?import javafx.scene.control.Tab?>
+<?import javafx.scene.control.TabPane?>
+<?import javafx.scene.control.TextArea?>
+<?import javafx.scene.control.TextField?>
+<?import javafx.scene.control.TreeView?>
+<?import javafx.scene.layout.BorderPane?>
+<?import javafx.scene.layout.HBox?>
+<?import javafx.scene.layout.Region?>
+<?import javafx.scene.layout.VBox?>
+
+<BorderPane fx:id="rootPane"
+            prefHeight="750.0"
+            prefWidth="1200.0"
+            styleClass="root-pane"
+            xmlns="http://javafx.com/javafx/21"
+            xmlns:fx="http://javafx.com/fxml/1"
+            fx:controller="com.writely.syntax_analyzer.app.WorkspaceController">
+
+    <!-- Top Header Bar -->
+    <top>
+        <HBox alignment="CENTER_LEFT" spacing="12" styleClass="header-bar">
+            <Label styleClass="brand-logo" text="writely" />
+            <Region HBox.hgrow="ALWAYS" />
+            <Button fx:id="deepScanButton"
+                    mnemonicParsing="false"
+                    onAction="#handleDeepScan"
+                    styleClass="btn-deep-scan"
+                    text="Initiate Deep Scan 💡" />
+            <Button fx:id="ingestFileButton"
+                    mnemonicParsing="false"
+                    onAction="#handleIngestFile"
+                    styleClass="btn-ingest"
+                    text="Ingest file 📤" />
+        </HBox>
+    </top>
+
+    <!-- Center Workspace: 3 Columns -->
+    <center>
+        <HBox spacing="16" styleClass="workspace-body">
+            <!-- Left Pane: File Explorer -->
+            <VBox fx:id="explorerPane" maxWidth="320.0" minWidth="180.0" prefWidth="230.0" spacing="12" styleClass="explorer-pane">
+                <TextField fx:id="searchField" promptText="🔍 Search files..." styleClass="search-field" />
+                <TreeView fx:id="fileTreeView" styleClass="file-tree-view" VBox.vgrow="ALWAYS" />
+                <Button fx:id="newFolderButton"
+                        maxWidth="Infinity"
+                        mnemonicParsing="false"
+                        onAction="#handleNewFolder"
+                        styleClass="new-folder-btn"
+                        text="+ New Folder" />
+            </VBox>
+
+            <!-- Center Pane: Editor & Tabs -->
+            <VBox styleClass="editor-pane" HBox.hgrow="ALWAYS">
+                <TabPane fx:id="editorTabPane"
+                         styleClass="editor-tab-pane"
+                         tabClosingPolicy="ALL_TABS"
+                         VBox.vgrow="ALWAYS">
+                    <tabs>
+                        <Tab fx:id="activeTab" closable="true" text="filename.py">
+                            <HBox styleClass="editor-content-box">
+                                <TextArea fx:id="lineGutterArea"
+                                          editable="false"
+                                          focusTraversable="false"
+                                          maxWidth="48.0"
+                                          minWidth="48.0"
+                                          prefWidth="48.0"
+                                          styleClass="line-gutter"
+                                          wrapText="false" />
+                                <TextArea fx:id="editorTextArea"
+                                          styleClass="code-editor"
+                                          wrapText="false"
+                                          HBox.hgrow="ALWAYS" />
+                            </HBox>
+                        </Tab>
+                    </tabs>
+                </TabPane>
+            </VBox>
+
+            <!-- Right Dock: Metrics & Diagnostics -->
+            <VBox maxWidth="400.0" minWidth="280.0" prefWidth="340.0" spacing="16" styleClass="right-dock">
+                <!-- Syntax Metric Insights Card -->
+                <VBox styleClass="card, metric-card">
+                    <HBox alignment="CENTER_LEFT" spacing="8" styleClass="card-header">
+                        <Label styleClass="card-title" text="SYNTAX METRIC INSIGHTS" />
+                        <Region HBox.hgrow="ALWAYS" />
+                        <HBox alignment="CENTER_LEFT" spacing="6">
+                            <Label styleClass="badge-label" text="TOTAL ISSUES" />
+                            <Label fx:id="totalIssuesBadge" styleClass="total-issues-pill" text="0" />
+                        </HBox>
+                    </HBox>
+                    <VBox spacing="10" styleClass="card-body">
+                        <HBox alignment="CENTER_LEFT" styleClass="metric-row">
+                            <Label styleClass="metric-label" text="Status" />
+                            <Region HBox.hgrow="ALWAYS" />
+                            <Label fx:id="statusBadgeLabel" styleClass="status-pill, status-idle" text="IDLE" />
+                        </HBox>
+                        <HBox alignment="CENTER_LEFT" styleClass="metric-row">
+                            <Label styleClass="metric-label" text="Errors" />
+                            <Region HBox.hgrow="ALWAYS" />
+                            <Label fx:id="errorCountLabel" styleClass="metric-value" text="0" />
+                        </HBox>
+                        <HBox alignment="CENTER_LEFT" styleClass="metric-row">
+                            <Label styleClass="metric-label" text="Warnings" />
+                            <Region HBox.hgrow="ALWAYS" />
+                            <Label fx:id="warningCountLabel" styleClass="metric-value" text="0" />
+                        </HBox>
+                        <HBox alignment="CENTER_LEFT" styleClass="metric-row">
+                            <Label styleClass="metric-label" text="Valid Lines" />
+                            <Region HBox.hgrow="ALWAYS" />
+                            <Label fx:id="validLinesLabel" styleClass="metric-value" text="0" />
+                        </HBox>
+                        <HBox alignment="CENTER_LEFT" styleClass="metric-row">
+                            <Label styleClass="metric-label" text="Flagged Lines" />
+                            <Region HBox.hgrow="ALWAYS" />
+                            <Label fx:id="flaggedLinesLabel" styleClass="metric-value" text="0" />
+                        </HBox>
+                    </VBox>
+                </VBox>
+
+                <!-- Diagnostics Findings Card -->
+                <VBox styleClass="card, diagnostics-card" VBox.vgrow="ALWAYS">
+                    <HBox alignment="CENTER_LEFT" styleClass="card-header">
+                        <Label styleClass="card-title" text="DIAGNOSTICS" />
+                        <Region HBox.hgrow="ALWAYS" />
+                        <Label fx:id="diagnosticsCountLabel" styleClass="badge-label" text="0 items" />
+                    </HBox>
+                    <ScrollPane fx:id="diagnosticsScrollPane"
+                                fitToHeight="true"
+                                fitToWidth="true"
+                                styleClass="diagnostics-scroll"
+                                VBox.vgrow="ALWAYS">
+                        <VBox fx:id="diagnosticsListContainer" spacing="8" styleClass="diagnostics-list" />
+                    </ScrollPane>
+                </VBox>
+            </VBox>
+        </HBox>
+    </center>
+
+    <!-- Bottom Footer Status Bar -->
+    <bottom>
+        <HBox alignment="CENTER_LEFT" spacing="16" styleClass="footer-bar">
+            <Label fx:id="footerStatusLabel" styleClass="footer-item" text="Ready" />
+            <Region HBox.hgrow="ALWAYS" />
+            <Label fx:id="footerLanguageLabel" styleClass="footer-item" text="Python" />
+            <Label fx:id="footerLinesLabel" styleClass="footer-item" text="0 lines" />
+            <Label fx:id="footerTokensLabel" styleClass="footer-item" text="0 tokens" />
+        </HBox>
+    </bottom>
+
+</BorderPane>
