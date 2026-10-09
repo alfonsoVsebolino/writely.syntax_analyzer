@@ -22,6 +22,7 @@ import javafx.concurrent.Task;
 import javafx.event.ActionEvent;
 import javafx.fxml.FXML;
 import javafx.fxml.Initializable;
+import javafx.scene.Node;
 import javafx.scene.control.Button;
 import javafx.scene.control.Label;
 import javafx.scene.control.ScrollPane;
@@ -39,7 +40,10 @@ import javafx.stage.Window;
 
 import java.io.File;
 import java.net.URL;
+import java.nio.file.Files;
 import java.nio.file.Path;
+import java.util.HashMap;
+import java.util.Map;
 import java.util.Objects;
 import java.util.ResourceBundle;
 
@@ -48,6 +52,8 @@ import java.util.ResourceBundle;
  * Coordinates code editing, file ingestion, tree exploration, and asynchronous syntax analysis.
  */
 public class WorkspaceController implements Initializable {
+
+    private final Map<String, Path> ingestedFilePaths = new HashMap<>();
 
     private static final String DEFAULT_PYTHON_SAMPLE =
         "import os\n" +
@@ -194,14 +200,11 @@ public class WorkspaceController implements Initializable {
 
         TreeItem<String> projectAlpha = new TreeItem<>("📁 Project Alpha");
         projectAlpha.setExpanded(true);
-        projectAlpha.getChildren().add(new TreeItem<>("🐍 filename.py"));
-        projectAlpha.getChildren().add(new TreeItem<>("☕ Main.java"));
-        projectAlpha.getChildren().add(new TreeItem<>("⚙️ app.cpp"));
+        projectAlpha.getChildren().add(new TreeItem<>("filename.py", createLanguageIcon(Language.PYTHON)));
+        projectAlpha.getChildren().add(new TreeItem<>("Main.java", createLanguageIcon(Language.JAVA)));
+        projectAlpha.getChildren().add(new TreeItem<>("app.cpp", createLanguageIcon(Language.CPP)));
 
-        TreeItem<String> assets = new TreeItem<>("📁 Assets");
-        TreeItem<String> components = new TreeItem<>("📁 Components");
-
-        rootTreeItem.getChildren().addAll(projectAlpha, assets, components);
+        rootTreeItem.getChildren().add(projectAlpha);
         fileTreeView.setRoot(rootTreeItem);
         fileTreeView.setShowRoot(false);
 
@@ -214,6 +217,39 @@ public class WorkspaceController implements Initializable {
         if (searchField != null) {
             searchField.textProperty().addListener((obs, oldVal, newVal) -> filterTree(newVal));
         }
+    }
+
+    private Node createLanguageIcon(Language language) {
+        Label badge = new Label();
+        badge.getStyleClass().add("tree-lang-badge");
+        if (language == Language.PYTHON) {
+            badge.setText("PY");
+            badge.getStyleClass().add("tree-lang-py");
+        } else if (language == Language.JAVA) {
+            badge.setText("JA");
+            badge.getStyleClass().add("tree-lang-java");
+        } else if (language == Language.CPP) {
+            badge.setText("C+");
+            badge.getStyleClass().add("tree-lang-cpp");
+        } else {
+            badge.setText("TX");
+            badge.getStyleClass().add("tree-lang-default");
+        }
+        return badge;
+    }
+
+    private Language inferLanguageFromFileName(String fileName) {
+        if (fileName == null) {
+            return Language.PYTHON;
+        }
+        if (fileName.endsWith(".java")) {
+            return Language.JAVA;
+        }
+        if (fileName.endsWith(".cpp") || fileName.endsWith(".cxx") || fileName.endsWith(".cc")
+                || fileName.endsWith(".h") || fileName.endsWith(".hpp")) {
+            return Language.CPP;
+        }
+        return Language.PYTHON;
     }
 
     private void filterTree(String query) {
@@ -235,7 +271,8 @@ public class WorkspaceController implements Initializable {
 
             for (TreeItem<String> child : folder.getChildren()) {
                 if (child.getValue().toLowerCase().contains(lowerQuery)) {
-                    matchingFolder.getChildren().add(new TreeItem<>(child.getValue()));
+                    Language lang = inferLanguageFromFileName(child.getValue());
+                    matchingFolder.getChildren().add(new TreeItem<>(child.getValue(), createLanguageIcon(lang)));
                     matchedAny = true;
                 }
             }
@@ -248,6 +285,11 @@ public class WorkspaceController implements Initializable {
 
     private void handleTreeFileSelected(String fileName) {
         if (fileName == null) {
+            return;
+        }
+        Path path = ingestedFilePaths.get(fileName);
+        if (path != null && Files.exists(path)) {
+            ingestFile(path);
             return;
         }
         if (fileName.contains("filename.py")) {
@@ -373,7 +415,11 @@ public class WorkspaceController implements Initializable {
         if (rootTreeItem != null) {
             int folderCount = rootTreeItem.getChildren().size() + 1;
             TreeItem<String> newFolder = new TreeItem<>("📁 Folder " + folderCount);
+            newFolder.setExpanded(true);
             rootTreeItem.getChildren().add(newFolder);
+            if (fileTreeView != null) {
+                fileTreeView.getSelectionModel().select(newFolder);
+            }
             if (footerStatusLabel != null) {
                 footerStatusLabel.setText("Created Folder " + folderCount);
             }
@@ -405,12 +451,53 @@ public class WorkspaceController implements Initializable {
             }
             updateLineGutter(payload.sourceText());
 
+            addIngestedFileToTree(path, payload.language());
+
             runAnalysis();
         } catch (IngestionException e) {
             if (footerStatusLabel != null) {
                 footerStatusLabel.setText("Ingestion error: " + e.getMessage());
             }
         }
+    }
+
+    private void addIngestedFileToTree(Path path, Language language) {
+        if (fileTreeView == null || rootTreeItem == null) {
+            return;
+        }
+        String fileName = path.getFileName().toString();
+        ingestedFilePaths.put(fileName, path);
+
+        TreeItem<String> targetFolder = null;
+        TreeItem<String> selected = fileTreeView.getSelectionModel().getSelectedItem();
+        if (selected != null) {
+            if (selected.getParent() == rootTreeItem) {
+                targetFolder = selected;
+            } else if (selected.getParent() != null && selected.getParent() != rootTreeItem) {
+                targetFolder = selected.getParent();
+            }
+        }
+        if (targetFolder == null) {
+            if (!rootTreeItem.getChildren().isEmpty()) {
+                targetFolder = rootTreeItem.getChildren().get(0);
+            } else {
+                targetFolder = new TreeItem<>("📁 Workspace Files");
+                targetFolder.setExpanded(true);
+                rootTreeItem.getChildren().add(targetFolder);
+            }
+        }
+        targetFolder.setExpanded(true);
+
+        for (TreeItem<String> child : targetFolder.getChildren()) {
+            if (fileName.equals(child.getValue())) {
+                fileTreeView.getSelectionModel().select(child);
+                return;
+            }
+        }
+
+        TreeItem<String> fileItem = new TreeItem<>(fileName, createLanguageIcon(language));
+        targetFolder.getChildren().add(fileItem);
+        fileTreeView.getSelectionModel().select(fileItem);
     }
 
     /**

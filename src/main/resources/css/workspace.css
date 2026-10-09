@@ -156,6 +156,43 @@
     -fx-background-color: #64748B;
 }
 
+.tree-lang-badge {
+    -fx-font-size: 9px;
+    -fx-font-weight: bold;
+    -fx-padding: 1 5 1 5;
+    -fx-background-radius: 4px;
+    -fx-min-width: 20px;
+    -fx-alignment: center;
+}
+
+.tree-lang-py {
+    -fx-background-color: #1E3A8A;
+    -fx-text-fill: #FACC15;
+    -fx-border-color: #3B82F6;
+    -fx-border-radius: 4px;
+}
+
+.tree-lang-java {
+    -fx-background-color: #450A0A;
+    -fx-text-fill: #F87171;
+    -fx-border-color: #DC2626;
+    -fx-border-radius: 4px;
+}
+
+.tree-lang-cpp {
+    -fx-background-color: #14532D;
+    -fx-text-fill: #4ADE80;
+    -fx-border-color: #16A34A;
+    -fx-border-radius: 4px;
+}
+
+.tree-lang-default {
+    -fx-background-color: #111C38;
+    -fx-text-fill: #94A3B8;
+    -fx-border-color: #1A284D;
+    -fx-border-radius: 4px;
+}
+
 .new-folder-btn {
     -fx-background-color: #0B1326;
     -fx-text-fill: #94A3B8;

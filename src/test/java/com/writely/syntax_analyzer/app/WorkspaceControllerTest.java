@@ -12,6 +12,7 @@ import com.writely.syntax_analyzer.domain.SourcePayload;
 import javafx.application.Platform;
 import javafx.concurrent.Task;
 import javafx.fxml.FXMLLoader;
+import javafx.scene.control.TreeItem;
 import javafx.scene.Parent;
 import javafx.scene.Scene;
 import javafx.scene.layout.HBox;
@@ -239,6 +240,35 @@ class WorkspaceControllerTest {
             assertEquals("Calculation.py", controller.getCurrentFileName());
             assertEquals(Language.PYTHON, controller.getCurrentLanguage());
             assertTrue(controller.getEditorText().contains("def add(a, b):"));
+        });
+    }
+
+    @Test
+    @DisplayName("Ingest file into selected folder adds file to that folder in tree")
+    void testIngestFileIntoSelectedFolder(@TempDir Path tempDir) throws Exception {
+        Path testFile = tempDir.resolve("Helper.java");
+        Files.writeString(testFile, "public class Helper {}");
+
+        runOnFxThread(() -> {
+            FXMLLoader loader = new FXMLLoader(getClass().getResource("/fxml/main-workspace.fxml"));
+            try {
+                loader.load();
+            } catch (IOException e) {
+                throw new RuntimeException(e);
+            }
+            WorkspaceController controller = loader.getController();
+
+            // Create new folder and ensure it is selected
+            controller.handleNewFolder(null);
+            TreeItem<String> newFolder = controller.getFileTreeView().getSelectionModel().getSelectedItem();
+            assertNotNull(newFolder);
+            assertTrue(newFolder.getValue().contains("Folder"));
+
+            // Ingest file into this folder
+            controller.ingestFile(testFile);
+
+            assertEquals("Helper.java", controller.getCurrentFileName());
+            assertTrue(newFolder.getChildren().stream().anyMatch(c -> c.getValue().equals("Helper.java")));
         });
     }
 
