@@ -50,11 +50,14 @@ import javafx.scene.control.Tooltip;
 import javafx.scene.control.TreeCell;
 import javafx.scene.control.TreeItem;
 import javafx.scene.control.TreeView;
+import com.writely.syntax_analyzer.app.guide.GuideRenderer;
+import com.writely.syntax_analyzer.app.guide.OnboardingGuideContent;
 import javafx.scene.layout.BorderPane;
 import javafx.scene.layout.FlowPane;
 import javafx.scene.layout.HBox;
 import javafx.scene.layout.Priority;
 import javafx.scene.layout.Region;
+import javafx.scene.layout.StackPane;
 import javafx.scene.layout.VBox;
 import javafx.stage.FileChooser;
 import javafx.stage.Window;
@@ -64,6 +67,7 @@ import java.net.URL;
 import java.nio.file.Files;
 import java.nio.file.Path;
 import java.util.HashMap;
+import java.util.List;
 import java.util.Map;
 import java.util.Objects;
 import java.util.ResourceBundle;
@@ -107,7 +111,13 @@ public class WorkspaceController implements Initializable {
         "}\n";
 
     // FXML View Nodes
-    @FXML private BorderPane rootPane;
+    @FXML private StackPane rootPane;
+    @FXML private Button guideButton;
+    @FXML private StackPane guideOverlay;
+    @FXML private Button guideCloseButton;
+    @FXML private Button guideGotItButton;
+    @FXML private ScrollPane guideContentScrollPane;
+    @FXML private VBox guideContentContainer;
     @FXML private SplitPane workspaceSplitPane;
     @FXML private Button deepScanButton;
     @FXML private Button ingestFileButton;
@@ -169,6 +179,7 @@ public class WorkspaceController implements Initializable {
     private SourceIngestionService ingestionService;
     private AnalysisOrchestrator orchestrator;
     private ReportExportService reportExportService;
+    private SettingsService settingsService;
 
     // State Properties
     private final ObjectProperty<Language> currentLanguage = new SimpleObjectProperty<>(Language.PYTHON);
@@ -186,20 +197,33 @@ public class WorkspaceController implements Initializable {
      * Default zero-arg constructor required by JavaFX FXMLLoader.
      */
     public WorkspaceController() {
-        this(new DefaultSourceIngestionService(), new AnalysisOrchestrator(), new ReportExportService());
+        this(new DefaultSourceIngestionService(), new AnalysisOrchestrator(), new ReportExportService(), new PreferencesSettingsService());
     }
 
     /**
      * Dependency injection constructor for testing and modular composition.
      */
     public WorkspaceController(SourceIngestionService ingestionService, AnalysisOrchestrator orchestrator) {
-        this(ingestionService, orchestrator, new ReportExportService());
+        this(ingestionService, orchestrator, new ReportExportService(), new PreferencesSettingsService());
     }
 
     public WorkspaceController(SourceIngestionService ingestionService, AnalysisOrchestrator orchestrator, ReportExportService reportExportService) {
+        this(ingestionService, orchestrator, reportExportService, new PreferencesSettingsService());
+    }
+
+    public WorkspaceController(SourceIngestionService ingestionService, AnalysisOrchestrator orchestrator, SettingsService settingsService) {
+        this(ingestionService, orchestrator, new ReportExportService(), settingsService);
+    }
+
+    public WorkspaceController(SourceIngestionService ingestionService, AnalysisOrchestrator orchestrator, ReportExportService reportExportService, SettingsService settingsService) {
         this.ingestionService = Objects.requireNonNull(ingestionService, "ingestionService must not be null");
         this.orchestrator = Objects.requireNonNull(orchestrator, "orchestrator must not be null");
         this.reportExportService = Objects.requireNonNull(reportExportService, "reportExportService must not be null");
+        this.settingsService = Objects.requireNonNull(settingsService, "settingsService must not be null");
+    }
+
+    public WorkspaceController(SettingsService settingsService) {
+        this(new DefaultSourceIngestionService(), new AnalysisOrchestrator(), new ReportExportService(), settingsService);
     }
 
     @Override
@@ -214,6 +238,7 @@ public class WorkspaceController implements Initializable {
         setupTokensTable();
         setupAstTreeView();
         updateInitialStatus();
+        setupGuideModal();
     }
 
     private void setupStateBindings() {
@@ -660,6 +685,66 @@ public class WorkspaceController implements Initializable {
     // =========================================================================
     // Action Handlers
     // =========================================================================
+
+    @FXML
+    public void handleOpenGuide(ActionEvent event) {
+        openGuide();
+    }
+
+    @FXML
+    public void handleDismissGuide(ActionEvent event) {
+        dismissGuideAndMarkSeen();
+    }
+
+    public void openGuide() {
+        showGuide();
+    }
+
+    public void showGuide() {
+        if (guideContentContainer != null && guideContentContainer.getChildren().isEmpty()) {
+            guideContentContainer.getChildren().setAll(GuideRenderer.render(OnboardingGuideContent.getDocument()));
+        }
+        if (guideOverlay != null) {
+            guideOverlay.setVisible(true);
+            guideOverlay.setManaged(true);
+        }
+    }
+
+    public void hideGuide() {
+        if (guideOverlay != null) {
+            guideOverlay.setVisible(false);
+            guideOverlay.setManaged(false);
+        }
+    }
+
+    public void dismissGuideAndMarkSeen() {
+        hideGuide();
+        if (settingsService != null) {
+            settingsService.setOnboardingSeen(true);
+        }
+    }
+
+    public void decideToShowGuideOnLaunch() {
+        if (settingsService != null && !settingsService.isOnboardingSeen()) {
+            showGuide();
+        } else {
+            hideGuide();
+        }
+    }
+
+    public void decideGuideOnLaunch() {
+        decideToShowGuideOnLaunch();
+    }
+
+    private void setupGuideModal() {
+        if (guideOverlay != null) {
+            guideOverlay.setOnMouseClicked(javafx.scene.input.MouseEvent::consume);
+        }
+        if (guideContentContainer != null && guideContentContainer.getChildren().isEmpty()) {
+            guideContentContainer.getChildren().setAll(GuideRenderer.render(OnboardingGuideContent.getDocument()));
+        }
+        decideToShowGuideOnLaunch();
+    }
 
     @FXML
     public void handleDeepScan(ActionEvent event) {
@@ -1856,6 +1941,65 @@ public class WorkspaceController implements Initializable {
 
     public ScrollPane getInsightsScrollPane() {
         return insightsScrollPane;
+    }
+
+    public StackPane getRootPane() {
+        return rootPane;
+    }
+
+    public SettingsService getSettingsService() {
+        return settingsService;
+    }
+
+    public void setSettingsService(SettingsService settingsService) {
+        this.settingsService = Objects.requireNonNull(settingsService, "settingsService must not be null");
+    }
+
+    public Button getGuideButton() {
+        return guideButton;
+    }
+
+    public StackPane getGuideOverlay() {
+        return guideOverlay;
+    }
+
+    public Button getGuideCloseButton() {
+        return guideCloseButton;
+    }
+
+    public Button getGuideGotItButton() {
+        return guideGotItButton;
+    }
+
+    public ScrollPane getGuideContentScrollPane() {
+        return guideContentScrollPane;
+    }
+
+    public VBox getGuideContentContainer() {
+        return guideContentContainer;
+    }
+
+    public boolean isGuideVisible() {
+        return guideOverlay != null && guideOverlay.isVisible();
+    }
+
+    public List<String> getGuideSectionTitles() {
+        List<String> titles = new java.util.ArrayList<>();
+        if (guideContentContainer != null) {
+            collectSectionTitles(guideContentContainer, titles);
+        }
+        return titles;
+    }
+
+    private void collectSectionTitles(Node node, List<String> titles) {
+        if (node instanceof Label label && label.getStyleClass().contains("guide-section-title")) {
+            titles.add(label.getText());
+        }
+        if (node instanceof javafx.scene.Parent parent) {
+            for (Node child : parent.getChildrenUnmodifiable()) {
+                collectSectionTitles(child, titles);
+            }
+        }
     }
 
     /**

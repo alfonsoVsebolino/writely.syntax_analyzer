@@ -21,18 +21,27 @@
 <?import javafx.scene.layout.StackPane?>
 <?import javafx.scene.layout.VBox?>
 
-<BorderPane fx:id="rootPane"
-            prefHeight="750.0"
-            prefWidth="1200.0"
-            styleClass="root-pane"
-            xmlns="http://javafx.com/javafx/21"
-            xmlns:fx="http://javafx.com/fxml/1"
-            fx:controller="com.writely.syntax_analyzer.app.WorkspaceController">
+<StackPane fx:id="rootPane"
+           prefHeight="750.0"
+           prefWidth="1200.0"
+           styleClass="root-pane"
+           xmlns="http://javafx.com/javafx/21"
+           xmlns:fx="http://javafx.com/fxml/1"
+           fx:controller="com.writely.syntax_analyzer.app.WorkspaceController">
+
+    <BorderPane prefHeight="750.0"
+                prefWidth="1200.0"
+                styleClass="root-pane">
 
     <!-- Top Header Bar -->
     <top>
         <HBox alignment="CENTER_LEFT" spacing="12" styleClass="header-bar">
             <Label styleClass="brand-logo" text="writely" />
+            <Button fx:id="guideButton"
+                    mnemonicParsing="false"
+                    onAction="#handleOpenGuide"
+                    styleClass="btn-guide"
+                    text="Guide 📖" />
             <Region HBox.hgrow="ALWAYS" />
             <Button fx:id="deepScanButton"
                     mnemonicParsing="false"
@@ -288,3 +297,38 @@
     </bottom>
 
 </BorderPane>
+
+    <!-- Guide Modal Overlay -->
+    <StackPane fx:id="guideOverlay"
+               styleClass="guide-modal-scrim"
+               visible="false"
+               managed="false">
+        <VBox maxWidth="750.0" maxHeight="600.0" styleClass="guide-modal-panel">
+            <HBox alignment="CENTER_LEFT" styleClass="guide-modal-header">
+                <Label styleClass="guide-modal-title" text="Onboarding Guide" />
+                <Region HBox.hgrow="ALWAYS" />
+                <Button fx:id="guideCloseButton"
+                        mnemonicParsing="false"
+                        onAction="#handleDismissGuide"
+                        styleClass="guide-modal-close-btn"
+                        text="✕" />
+            </HBox>
+            <ScrollPane fx:id="guideContentScrollPane"
+                        fitToWidth="true"
+                        styleClass="guide-modal-scroll-pane"
+                        VBox.vgrow="ALWAYS">
+                <VBox fx:id="guideContentContainer"
+                      spacing="16"
+                      styleClass="guide-modal-content-container" />
+            </ScrollPane>
+            <HBox alignment="CENTER_RIGHT" styleClass="guide-modal-footer">
+                <Button fx:id="guideGotItButton"
+                        mnemonicParsing="false"
+                        onAction="#handleDismissGuide"
+                        styleClass="guide-modal-action-btn"
+                        text="Got it, let's write!" />
+            </HBox>
+        </VBox>
+    </StackPane>
+
+</StackPane>
