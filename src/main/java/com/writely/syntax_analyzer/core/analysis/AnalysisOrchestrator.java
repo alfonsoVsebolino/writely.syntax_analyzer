@@ -130,7 +130,31 @@ public class AnalysisOrchestrator {
 
         collectCheckerDiagnostics(adapter, payload, tokens, collected);
 
-        return AnalysisResult.of(payload, tokens, syntaxTree, DiagnosticAggregator.aggregate(collected));
+        List<Diagnostic> sanitized = sanitizeDiagnostics(collected);
+
+        return AnalysisResult.of(payload, tokens, syntaxTree, DiagnosticAggregator.aggregate(sanitized));
+    }
+
+    private List<Diagnostic> sanitizeDiagnostics(List<Diagnostic> diagnostics) {
+        boolean hasCanonical = diagnostics.stream()
+            .anyMatch(d -> StatementTerminatorAndBlockChecker.ERR_MISSING_SEMICOLON.equals(d.code()));
+        if (!hasCanonical) {
+            return diagnostics;
+        }
+        java.util.Set<SourceLocation> canonicalLocations = diagnostics.stream()
+            .filter(d -> StatementTerminatorAndBlockChecker.ERR_MISSING_SEMICOLON.equals(d.code()))
+            .map(Diagnostic::location)
+            .collect(java.util.stream.Collectors.toSet());
+
+        return diagnostics.stream()
+            .filter(d -> !(isInternalTerminatorCode(d.code()) && canonicalLocations.contains(d.location())))
+            .toList();
+    }
+
+    private static boolean isInternalTerminatorCode(String code) {
+        return "ERR_JAVA_MISSING_SEMICOLON".equals(code)
+            || "CPP_MISSING_SEMICOLON".equals(code)
+            || "ERR_CPP_MISSING_SEMICOLON".equals(code);
     }
 
     /**

@@ -35,6 +35,8 @@ Ubiquitous language and domain vocabulary across the core engine, GUI, and langu
   - Ordered list of `Diagnostic` findings.
   - Statistical summary (total lines, tokens, error count per category, overall status `PASSED`/`FAILED`).
 - **Syntax Report**: Human-readable or JSON serialized output generated from an `AnalysisResult`.
+- **Settings Service**: The application component that persists user preferences across launches. It is the sole mechanism for storing user settings; the Onboarding Guide's first-run state is its first stored preference.
 
 ## Interface & Guidance
 - **Onboarding Guide**: The built-in walkthrough that explains the analyzer's scope, purpose, and usage. It is presented on first launch and can be reopened at any time from the workspace. It documents that analysis is strictly static and syntactical: analyzed code is never executed, and semantic or runtime failures (such as undefined names) are outside the analyzer's scope.
+- **Guide Modal**: The application-modal overlay through which the Onboarding Guide is presented. It floats above the workspace with the workspace dimmed behind it to establish focus, closes via its close control, and can be reopened on demand.

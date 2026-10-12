@@ -861,15 +861,15 @@ class WorkspaceControllerTest {
                 assertTrue(node instanceof Label);
                 Label label = (Label) node;
                 assertTrue(label.getStyleClass().contains("category-chip"));
-                if (label.getText().contains("DELIMITER_MATCH: 2")) {
+                if (label.getText().contains("Delimiter Match: 2")) {
                     foundDelimiter = true;
                 }
-                if (label.getText().contains("LITERAL_SYNTAX: 1")) {
+                if (label.getText().contains("Literal Syntax: 1")) {
                     foundLiteral = true;
                 }
             }
-            assertTrue(foundDelimiter, "DELIMITER_MATCH: 2 pill must be rendered");
-            assertTrue(foundLiteral, "LITERAL_SYNTAX: 1 pill must be rendered");
+            assertTrue(foundDelimiter, "Delimiter Match: 2 pill must be rendered");
+            assertTrue(foundLiteral, "Literal Syntax: 1 pill must be rendered");
         });
     }
 
@@ -910,7 +910,7 @@ class WorkspaceControllerTest {
             assertTrue(severityBadge.getStyleClass().contains("badge-error"));
 
             Label codeBadge = (Label) header.getChildren().get(1);
-            assertEquals("ERR_CTRL_01", codeBadge.getText());
+            assertEquals("Python Ctrl 01", codeBadge.getText());
             assertTrue(codeBadge.getStyleClass().contains("code-badge"));
 
             Label locBadge = (Label) header.getChildren().get(2);
@@ -918,7 +918,7 @@ class WorkspaceControllerTest {
             assertTrue(locBadge.getStyleClass().contains("loc-badge"));
 
             Label categoryBadge = (Label) header.getChildren().get(3);
-            assertEquals("CONTROL_HEADER", categoryBadge.getText());
+            assertEquals("Control Header", categoryBadge.getText());
 
             Label messageLabel = (Label) card.getChildren().get(1);
             assertEquals("Missing colon after if condition", messageLabel.getText());

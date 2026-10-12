@@ -204,6 +204,7 @@
                                     </HBox>
                                     <Label fx:id="emptyStateBanner"
                                            managed="false"
+                                           maxWidth="Infinity"
                                            styleClass="empty-state-banner"
                                            text="No syntax issues detected. Code is syntactically valid."
                                            visible="false"
