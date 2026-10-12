@@ -118,44 +118,36 @@ public class AnalysisOrchestrator {
         }
 
         Optional<SyntaxNode> syntaxTree = Optional.empty();
+        List<Diagnostic> parseDiagnostics = new ArrayList<>();
         try {
             ParseResult parseResult = adapter.parse(payload, tokens);
             if (parseResult != null) {
                 syntaxTree = parseResult.syntaxTree();
-                collected.addAll(parseResult.diagnostics());
+                parseDiagnostics.addAll(parseResult.diagnostics());
             }
         } catch (Exception e) {
             collected.add(internalFailure("parsing", e, PIPELINE_FAILURE_CATEGORY));
         }
 
-        collectCheckerDiagnostics(adapter, payload, tokens, collected);
+        List<Diagnostic> checkerDiagnostics = new ArrayList<>();
+        collectCheckerDiagnostics(adapter, payload, tokens, checkerDiagnostics);
 
-        List<Diagnostic> sanitized = sanitizeDiagnostics(collected);
-
-        return AnalysisResult.of(payload, tokens, syntaxTree, DiagnosticAggregator.aggregate(sanitized));
-    }
-
-    private List<Diagnostic> sanitizeDiagnostics(List<Diagnostic> diagnostics) {
-        boolean hasCanonical = diagnostics.stream()
-            .anyMatch(d -> StatementTerminatorAndBlockChecker.ERR_MISSING_SEMICOLON.equals(d.code()));
-        if (!hasCanonical) {
-            return diagnostics;
-        }
-        java.util.Set<SourceLocation> canonicalLocations = diagnostics.stream()
-            .filter(d -> StatementTerminatorAndBlockChecker.ERR_MISSING_SEMICOLON.equals(d.code()))
-            .map(Diagnostic::location)
+        // Canonical checker diagnostics supersede parser diagnostics sharing (category, line, column)
+        java.util.Set<CategoryLocationKey> checkerKeys = checkerDiagnostics.stream()
+            .map(d -> new CategoryLocationKey(d.category(), d.location().line(), d.location().column()))
             .collect(java.util.stream.Collectors.toSet());
 
-        return diagnostics.stream()
-            .filter(d -> !(isInternalTerminatorCode(d.code()) && canonicalLocations.contains(d.location())))
-            .toList();
+        for (Diagnostic pd : parseDiagnostics) {
+            if (!checkerKeys.contains(new CategoryLocationKey(pd.category(), pd.location().line(), pd.location().column()))) {
+                collected.add(pd);
+            }
+        }
+        collected.addAll(checkerDiagnostics);
+
+        return AnalysisResult.of(payload, tokens, syntaxTree, DiagnosticAggregator.aggregate(collected));
     }
 
-    private static boolean isInternalTerminatorCode(String code) {
-        return "ERR_JAVA_MISSING_SEMICOLON".equals(code)
-            || "CPP_MISSING_SEMICOLON".equals(code)
-            || "ERR_CPP_MISSING_SEMICOLON".equals(code);
-    }
+    private record CategoryLocationKey(CheckCategory category, int line, int column) {}
 
     /**
      * Runs every checker whose category the adapter's rule capabilities declare,
