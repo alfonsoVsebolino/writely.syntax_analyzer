@@ -18,6 +18,8 @@ Ubiquitous language and domain vocabulary across the core engine, GUI, and langu
   - `category`: Classification matching one of the required syntax check areas.
   - `location`: Exact `SourceLocation` (line and column).
   - `message`: Explanatory human-readable text.
+- **Internal Parser Diagnostic**: A diagnostic emitted directly by a `ParserAdapter` during abstract syntax tree construction. It uses an internal language-specific code (for example, `ERR_JAVA_MISSING_SEMICOLON` or `CPP_UNCLOSED_DELIMITER`) to control parser error recovery.
+- **Canonical Syntax Diagnostic**: A diagnostic emitted by a universal `SyntaxChecker`. It uses a standard cross-language code (for example, `ERR_MISSING_SEMICOLON` or `ERR_UNCLOSED_DELIMITER`) and provides an actionable repair suggestion. When an internal parser diagnostic and a canonical syntax diagnostic share the same `Check Category` and `Source Location`, the canonical diagnostic supersedes the internal diagnostic.
 - **Check Category**: The standard syntactical inspection scopes:
   - `DELIMITER_MATCH`: Parentheses `()`, brackets `[]`, braces `{}` balancing.
   - `LITERAL_SYNTAX`: Unterminated or malformed string and character literals.
