@@ -190,7 +190,7 @@ class WorkspaceControllerGuideTest {
     }
 
     @Test
-    @DisplayName("Header button guideButton exists, has text Guide 📖, and triggers opening guide")
+    @DisplayName("Header button guideButton exists, has text Guide, and triggers opening guide")
     void testGuideButtonInHeader() throws Exception {
         runOnFxThread(() -> {
             try {
@@ -200,7 +200,8 @@ class WorkspaceControllerGuideTest {
 
                 WorkspaceController controller = loadControllerWithSettings(settingsService);
                 assertNotNull(controller.getGuideButton(), "guideButton must be injected");
-                assertEquals("Guide 📖", controller.getGuideButton().getText());
+                assertEquals("Guide", controller.getGuideButton().getText());
+                assertNotNull(controller.getGuideButton().getGraphic(), "guideButton should have vector graphic");
                 assertTrue(controller.getGuideButton().getStyleClass().contains("btn-guide"));
 
                 assertFalse(controller.isGuideVisible());
