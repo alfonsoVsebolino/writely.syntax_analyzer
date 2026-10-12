@@ -46,6 +46,7 @@ import javafx.scene.control.TableRow;
 import javafx.scene.control.TableView;
 import javafx.scene.control.TextArea;
 import javafx.scene.control.TextField;
+import javafx.scene.control.Tooltip;
 import javafx.scene.control.TreeCell;
 import javafx.scene.control.TreeItem;
 import javafx.scene.control.TreeView;
@@ -280,6 +281,7 @@ public class WorkspaceController implements Initializable {
         rootTreeItem.getChildren().add(projectAlpha);
         fileTreeView.setRoot(rootTreeItem);
         fileTreeView.setShowRoot(false);
+        fileTreeView.setCellFactory(tv -> new WorkspaceTreeCell(this));
 
         fileTreeView.getSelectionModel().selectedItemProperty().addListener((obs, oldVal, newVal) -> {
             if (newVal != null && newVal.isLeaf()) {
@@ -696,6 +698,125 @@ public class WorkspaceController implements Initializable {
                 footerStatusLabel.setText("Created Folder " + folderCount);
             }
         }
+    }
+
+    /**
+     * Determines whether the given TreeItem represents a folder.
+     */
+    public boolean isFolderItem(TreeItem<String> treeItem) {
+        if (treeItem == null || treeItem == rootTreeItem) {
+            return false;
+        }
+        if (treeItem.getParent() == null) {
+            return false;
+        }
+        if (treeItem.getParent() == rootTreeItem) {
+            return true;
+        }
+        if (treeItem.getValue() != null && treeItem.getValue().contains("📁")) {
+            return true;
+        }
+        return !treeItem.isLeaf();
+    }
+
+    /**
+     * Programmatically deletes a folder item from the file explorer, closing any open
+     * file tabs that were contained within it and updating the workspace status.
+     *
+     * @param folderItem the folder TreeItem to delete
+     */
+    public void deleteFolder(TreeItem<String> folderItem) {
+        if (folderItem == null || folderItem.getParent() == null) {
+            return;
+        }
+
+        String folderName = folderItem.getValue() != null ? folderItem.getValue() : "Folder";
+
+        // Check if active tab file belongs to this folder
+        String openFileName = currentFileName.get();
+        if (openFileName == null && activeTab != null) {
+            openFileName = activeTab.getText();
+        }
+        boolean affected = false;
+        if (openFileName != null && containsFile(folderItem, openFileName)) {
+            affected = true;
+        }
+        if (!affected && currentFilePath.get() != null && currentFilePath.get().getFileName() != null) {
+            affected = containsFile(folderItem, currentFilePath.get().getFileName().toString());
+        }
+
+        // Check if deleted folder or any child of it was selected before removal
+        TreeItem<String> selected = fileTreeView != null ? fileTreeView.getSelectionModel().getSelectedItem() : null;
+        boolean wasSelected = selected == folderItem || isDescendantOf(selected, folderItem);
+
+        // Clean up any ingested file records tracked under this folder
+        cleanUpFolderFiles(folderItem);
+
+        // Clear selection BEFORE removing from parent so JavaFX does not auto-select adjacent items
+        if (wasSelected && fileTreeView != null) {
+            fileTreeView.getSelectionModel().clearSelection();
+        }
+
+        // Remove from parent
+        folderItem.getParent().getChildren().remove(folderItem);
+
+        // If currently in a filtered tree view, also remove matching item from rootTreeItem
+        if (rootTreeItem != null && folderItem.getParent() != rootTreeItem) {
+            rootTreeItem.getChildren().removeIf(child -> Objects.equals(child.getValue(), folderItem.getValue()));
+        }
+
+        // If active tab file was inside deleted folder, close active tab
+        if (affected) {
+            handleActiveTabClosed();
+        }
+
+        // Update footer status
+        if (footerStatusLabel != null) {
+            footerStatusLabel.setText("Deleted folder: " + folderName);
+        }
+    }
+
+    private boolean containsFile(TreeItem<String> folder, String fileName) {
+        if (folder == null || fileName == null) {
+            return false;
+        }
+        for (TreeItem<String> child : folder.getChildren()) {
+            if (child.getValue() != null && (child.getValue().equals(fileName)
+                    || child.getValue().endsWith("/" + fileName)
+                    || child.getValue().endsWith("\\" + fileName))) {
+                return true;
+            }
+            if (containsFile(child, fileName)) {
+                return true;
+            }
+        }
+        return false;
+    }
+
+    private void cleanUpFolderFiles(TreeItem<String> folder) {
+        if (folder == null) {
+            return;
+        }
+        for (TreeItem<String> child : folder.getChildren()) {
+            if (child.getValue() != null) {
+                ingestedFilePaths.remove(child.getValue());
+            }
+            cleanUpFolderFiles(child);
+        }
+    }
+
+    private boolean isDescendantOf(TreeItem<String> node, TreeItem<String> ancestor) {
+        if (node == null || ancestor == null) {
+            return false;
+        }
+        TreeItem<String> current = node.getParent();
+        while (current != null) {
+            if (current == ancestor) {
+                return true;
+            }
+            current = current.getParent();
+        }
+        return false;
     }
 
     @FXML
@@ -1735,5 +1856,59 @@ public class WorkspaceController implements Initializable {
 
     public ScrollPane getInsightsScrollPane() {
         return insightsScrollPane;
+    }
+
+    /**
+     * Custom tree cell rendering folders with an inline delete "×" button and files with their language badge.
+     */
+    public static class WorkspaceTreeCell extends TreeCell<String> {
+        private final WorkspaceController controller;
+
+        public WorkspaceTreeCell(WorkspaceController controller) {
+            this.controller = controller;
+        }
+
+        public void setCellTreeItem(TreeItem<String> item) {
+            updateTreeItem(item);
+        }
+
+        @Override
+        public void updateItem(String item, boolean empty) {
+            super.updateItem(item, empty);
+            if (empty || item == null) {
+                setText(null);
+                setGraphic(null);
+                return;
+            }
+
+            TreeItem<String> treeItem = getTreeItem();
+            if (controller != null && controller.isFolderItem(treeItem)) {
+                setText(null);
+                HBox container = new HBox(6);
+                container.setAlignment(Pos.CENTER_LEFT);
+
+                Label nameLabel = new Label(item);
+                nameLabel.getStyleClass().add("tree-folder-label");
+
+                Region spacer = new Region();
+                HBox.setHgrow(spacer, Priority.ALWAYS);
+
+                Button deleteBtn = new Button("×");
+                deleteBtn.getStyleClass().add("tree-folder-delete-btn");
+                deleteBtn.setTooltip(new Tooltip("Delete folder"));
+                deleteBtn.setAccessibleText("Delete folder");
+                deleteBtn.setFocusTraversable(false);
+                deleteBtn.setOnAction(event -> {
+                    event.consume();
+                    controller.deleteFolder(treeItem);
+                });
+
+                container.getChildren().addAll(nameLabel, spacer, deleteBtn);
+                setGraphic(container);
+            } else {
+                setText(item);
+                setGraphic(treeItem != null ? treeItem.getGraphic() : null);
+            }
+        }
     }
 }

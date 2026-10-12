@@ -18,6 +18,7 @@ import javafx.application.Platform;
 import javafx.concurrent.Task;
 import javafx.fxml.FXMLLoader;
 import javafx.scene.control.Alert;
+import javafx.scene.control.Button;
 import javafx.scene.control.Label;
 import javafx.scene.control.TreeItem;
 import javafx.scene.Parent;
@@ -1138,6 +1139,149 @@ class WorkspaceControllerTest {
             assertTrue(controller.getInsightsScrollPane().isFitToWidth());
             assertFalse(controller.getInsightsScrollPane().isFitToHeight());
             assertTrue(controller.getInsightsScrollPane().getStyleClass().contains("tab-scroll-pane"));
+        });
+    }
+
+    @Test
+    @DisplayName("Created folder can be deleted and is cleanly removed from fileTreeView")
+    void testCreatedFolderDeletion() throws Exception {
+        runOnFxThread(() -> {
+            FXMLLoader loader = new FXMLLoader(getClass().getResource("/fxml/main-workspace.fxml"));
+            try {
+                loader.load();
+            } catch (IOException e) {
+                throw new RuntimeException(e);
+            }
+            WorkspaceController controller = loader.getController();
+
+            // 1. Create a new folder
+            int initialFolderCount = controller.getFileTreeView().getRoot().getChildren().size();
+            controller.handleNewFolder(null);
+
+            assertEquals(initialFolderCount + 1, controller.getFileTreeView().getRoot().getChildren().size());
+            TreeItem<String> newFolder = controller.getFileTreeView().getSelectionModel().getSelectedItem();
+            assertNotNull(newFolder);
+            assertTrue(controller.getFileTreeView().getRoot().getChildren().contains(newFolder));
+
+            // 2. Delete the created folder via deleteFolder
+            controller.deleteFolder(newFolder);
+
+            assertFalse(controller.getFileTreeView().getRoot().getChildren().contains(newFolder));
+            assertEquals(initialFolderCount, controller.getFileTreeView().getRoot().getChildren().size());
+            assertEquals("Deleted folder: " + newFolder.getValue(), controller.getFooterStatusLabel().getText());
+            // Since newFolder was selected, selection should be cleared
+            assertNull(controller.getFileTreeView().getSelectionModel().getSelectedItem());
+            // Active tab was not affected because filename.py is not inside newFolder
+            assertNotNull(controller.getActiveTab());
+            assertEquals("filename.py", controller.getCurrentFileName());
+        });
+    }
+
+    @Test
+    @DisplayName("Deleting a folder containing the currently open file closes the active tab")
+    void testDeleteFolderContainingActiveFileClosesActiveTab() throws Exception {
+        runOnFxThread(() -> {
+            FXMLLoader loader = new FXMLLoader(getClass().getResource("/fxml/main-workspace.fxml"));
+            try {
+                loader.load();
+            } catch (IOException e) {
+                throw new RuntimeException(e);
+            }
+            WorkspaceController controller = loader.getController();
+
+            // Project Alpha contains filename.py (currently open)
+            TreeItem<String> projectAlpha = controller.getFileTreeView().getRoot().getChildren().get(0);
+            assertEquals("filename.py", controller.getCurrentFileName());
+            assertNotNull(controller.getActiveTab());
+
+            // Delete Project Alpha
+            controller.deleteFolder(projectAlpha);
+
+            assertFalse(controller.getFileTreeView().getRoot().getChildren().contains(projectAlpha));
+            assertNull(controller.getActiveTab());
+            assertNull(controller.getCurrentFileName());
+            assertTrue(controller.getEditorEmptyStatePane().isVisible());
+            assertEquals("Deleted folder: 📁 Project Alpha", controller.getFooterStatusLabel().getText());
+        });
+    }
+
+    @Test
+    @DisplayName("WorkspaceTreeCell renders inline delete button for folders and deletes on click")
+    void testWorkspaceTreeCellInlineDeleteButton() throws Exception {
+        runOnFxThread(() -> {
+            FXMLLoader loader = new FXMLLoader(getClass().getResource("/fxml/main-workspace.fxml"));
+            try {
+                loader.load();
+            } catch (IOException e) {
+                throw new RuntimeException(e);
+            }
+            WorkspaceController controller = loader.getController();
+
+            // Create a test folder
+            TreeItem<String> testFolder = new TreeItem<>("📁 Test Inline Folder");
+            controller.getFileTreeView().getRoot().getChildren().add(testFolder);
+            assertTrue(controller.isFolderItem(testFolder));
+
+            // Create a custom tree cell representing testFolder
+            WorkspaceController.WorkspaceTreeCell folderCell = new WorkspaceController.WorkspaceTreeCell(controller);
+            folderCell.setCellTreeItem(testFolder);
+            folderCell.updateItem(testFolder.getValue(), false);
+
+            assertNotNull(folderCell.getGraphic());
+            assertTrue(folderCell.getGraphic() instanceof HBox);
+            HBox hbox = (HBox) folderCell.getGraphic();
+
+            Button deleteBtn = hbox.getChildren().stream()
+                .filter(node -> node instanceof Button)
+                .map(node -> (Button) node)
+                .findFirst()
+                .orElse(null);
+            assertNotNull(deleteBtn, "Inline delete button must be present in folder cell");
+            assertEquals("×", deleteBtn.getText());
+            assertTrue(deleteBtn.getStyleClass().contains("tree-folder-delete-btn"));
+
+            // Trigger the inline delete button click
+            deleteBtn.fire();
+
+            // Verify folder is cleanly removed and footer updated
+            assertFalse(controller.getFileTreeView().getRoot().getChildren().contains(testFolder));
+            assertEquals("Deleted folder: 📁 Test Inline Folder", controller.getFooterStatusLabel().getText());
+
+            // Test file cell does not render delete button
+            TreeItem<String> fileItem = new TreeItem<>("script.py");
+            testFolder.getChildren().add(fileItem);
+            assertFalse(controller.isFolderItem(fileItem));
+
+            WorkspaceController.WorkspaceTreeCell fileCell = new WorkspaceController.WorkspaceTreeCell(controller);
+            fileCell.setCellTreeItem(fileItem);
+            fileCell.updateItem("script.py", false);
+            assertEquals("script.py", fileCell.getText());
+            assertFalse(fileCell.getGraphic() instanceof HBox);
+        });
+    }
+
+    @Test
+    @DisplayName("deleteFolder handles null and root item safely")
+    void testDeleteFolderNullAndRootSafety() throws Exception {
+        runOnFxThread(() -> {
+            FXMLLoader loader = new FXMLLoader(getClass().getResource("/fxml/main-workspace.fxml"));
+            try {
+                loader.load();
+            } catch (IOException e) {
+                throw new RuntimeException(e);
+            }
+            WorkspaceController controller = loader.getController();
+
+            int initialCount = controller.getFileTreeView().getRoot().getChildren().size();
+
+            // Passing null should be a no-op
+            controller.deleteFolder(null);
+            assertEquals(initialCount, controller.getFileTreeView().getRoot().getChildren().size());
+
+            // Passing root should be a no-op
+            controller.deleteFolder(controller.getFileTreeView().getRoot());
+            assertNotNull(controller.getFileTreeView().getRoot());
+            assertEquals(initialCount, controller.getFileTreeView().getRoot().getChildren().size());
         });
     }
 }

@@ -226,6 +226,37 @@
     -fx-border-color: #2D4480;
 }
 
+.tree-folder-label {
+    -fx-text-fill: inherit;
+    -fx-font-size: 13px;
+}
+
+.tree-folder-delete-btn {
+    -fx-background-color: transparent;
+    -fx-text-fill: #64748B;
+    -fx-font-size: 14px;
+    -fx-font-weight: bold;
+    -fx-padding: 0 4 0 4;
+    -fx-min-width: 18px;
+    -fx-min-height: 18px;
+    -fx-max-width: 18px;
+    -fx-max-height: 18px;
+    -fx-background-radius: 4px;
+    -fx-cursor: hand;
+    -fx-border-color: transparent;
+    -fx-alignment: center;
+}
+
+.tree-folder-delete-btn:hover {
+    -fx-background-color: rgba(239, 68, 68, 0.15);
+    -fx-text-fill: #EF4444;
+}
+
+.tree-folder-delete-btn:pressed {
+    -fx-background-color: rgba(220, 38, 38, 0.3);
+    -fx-text-fill: #F87171;
+}
+
 /* ==========================================================================
    Center Pane: Editor & Tabs
    ========================================================================== */
