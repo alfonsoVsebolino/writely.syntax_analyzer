@@ -1027,12 +1027,65 @@ public class WorkspaceController implements Initializable {
         for (CheckCategory cat : CheckCategory.values()) {
             int count = result.summary().countForCategory(cat);
             if (count > 0) {
-                Label chip = new Label(cat.name() + ": " + count);
+                Label chip = new Label(formatCategoryName(cat) + ": " + count);
                 chip.getStyleClass().addAll("category-chip");
                 chip.setUserData(cat);
                 categoryBreakdownContainer.getChildren().add(chip);
             }
         }
+    }
+
+    public static String formatCategoryName(CheckCategory cat) {
+        if (cat == null) {
+            return "";
+        }
+        String[] parts = cat.name().toLowerCase().split("_");
+        StringBuilder sb = new StringBuilder();
+        for (String part : parts) {
+            if (!part.isEmpty()) {
+                if (!sb.isEmpty()) {
+                    sb.append(" ");
+                }
+                sb.append(Character.toUpperCase(part.charAt(0))).append(part.substring(1));
+            }
+        }
+        return sb.toString();
+    }
+
+    public static String formatErrorCode(String code, Language lang) {
+        if (code == null || code.isBlank()) {
+            return "";
+        }
+        String clean = code.startsWith("ERR_") ? code.substring(4) : code;
+        String langPrefix = "";
+        if (clean.startsWith("JAVA_")) {
+            langPrefix = "Java ";
+            clean = clean.substring(5);
+        } else if (clean.startsWith("CPP_")) {
+            langPrefix = "Cpp ";
+            clean = clean.substring(4);
+        } else if (clean.startsWith("PYTHON_")) {
+            langPrefix = "Python ";
+            clean = clean.substring(7);
+        } else if (lang != null) {
+            langPrefix = switch (lang) {
+                case JAVA -> "Java ";
+                case CPP -> "Cpp ";
+                case PYTHON -> "Python ";
+            };
+        }
+
+        String[] parts = clean.toLowerCase().split("_");
+        StringBuilder sb = new StringBuilder(langPrefix);
+        for (String part : parts) {
+            if (!part.isEmpty()) {
+                if (sb.length() > 0 && sb.charAt(sb.length() - 1) != ' ') {
+                    sb.append(" ");
+                }
+                sb.append(Character.toUpperCase(part.charAt(0))).append(part.substring(1));
+            }
+        }
+        return sb.toString().trim();
     }
 
     private void renderTokens(AnalysisResult result) {
@@ -1244,9 +1297,13 @@ public class WorkspaceController implements Initializable {
             diagnosticsScrollPane.setManaged(true);
         }
 
+        java.util.Set<String> seenCards = new java.util.HashSet<>();
         for (Diagnostic diag : result.diagnostics()) {
-            VBox card = createDiagnosticCard(diag);
-            diagnosticsListContainer.getChildren().add(card);
+            String cardKey = diag.location().line() + ":" + diag.location().column() + ":" + diag.category().name();
+            if (seenCards.add(cardKey)) {
+                VBox card = createDiagnosticCard(diag);
+                diagnosticsListContainer.getChildren().add(card);
+            }
         }
     }
 
@@ -1266,7 +1323,7 @@ public class WorkspaceController implements Initializable {
             diag.severity() == Severity.ERROR ? "badge-error" : "badge-warning");
         severityBadge.setMinSize(Region.USE_PREF_SIZE, Region.USE_PREF_SIZE);
 
-        Label codeBadge = new Label(diag.code());
+        Label codeBadge = new Label(formatErrorCode(diag.code(), currentLanguage.get()));
         codeBadge.getStyleClass().add("code-badge");
         codeBadge.setMinSize(Region.USE_PREF_SIZE, Region.USE_PREF_SIZE);
 
@@ -1274,7 +1331,7 @@ public class WorkspaceController implements Initializable {
         locBadge.getStyleClass().add("loc-badge");
         locBadge.setMinSize(Region.USE_PREF_SIZE, Region.USE_PREF_SIZE);
 
-        Label categoryBadge = new Label(diag.category().name());
+        Label categoryBadge = new Label(formatCategoryName(diag.category()));
         categoryBadge.getStyleClass().add("category-badge");
         categoryBadge.setMinSize(Region.USE_PREF_SIZE, Region.USE_PREF_SIZE);
 

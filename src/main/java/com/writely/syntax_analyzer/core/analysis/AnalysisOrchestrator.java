@@ -118,20 +118,36 @@ public class AnalysisOrchestrator {
         }
 
         Optional<SyntaxNode> syntaxTree = Optional.empty();
+        List<Diagnostic> parseDiagnostics = new ArrayList<>();
         try {
             ParseResult parseResult = adapter.parse(payload, tokens);
             if (parseResult != null) {
                 syntaxTree = parseResult.syntaxTree();
-                collected.addAll(parseResult.diagnostics());
+                parseDiagnostics.addAll(parseResult.diagnostics());
             }
         } catch (Exception e) {
             collected.add(internalFailure("parsing", e, PIPELINE_FAILURE_CATEGORY));
         }
 
-        collectCheckerDiagnostics(adapter, payload, tokens, collected);
+        List<Diagnostic> checkerDiagnostics = new ArrayList<>();
+        collectCheckerDiagnostics(adapter, payload, tokens, checkerDiagnostics);
+
+        // Canonical checker diagnostics supersede parser diagnostics sharing (category, line, column)
+        java.util.Set<CategoryLocationKey> checkerKeys = checkerDiagnostics.stream()
+            .map(d -> new CategoryLocationKey(d.category(), d.location().line(), d.location().column()))
+            .collect(java.util.stream.Collectors.toSet());
+
+        for (Diagnostic pd : parseDiagnostics) {
+            if (!checkerKeys.contains(new CategoryLocationKey(pd.category(), pd.location().line(), pd.location().column()))) {
+                collected.add(pd);
+            }
+        }
+        collected.addAll(checkerDiagnostics);
 
         return AnalysisResult.of(payload, tokens, syntaxTree, DiagnosticAggregator.aggregate(collected));
     }
+
+    private record CategoryLocationKey(CheckCategory category, int line, int column) {}
 
     /**
      * Runs every checker whose category the adapter's rule capabilities declare,
