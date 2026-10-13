@@ -72,6 +72,11 @@
     -fx-opacity: 0.6;
 }
 
+.btn-deep-scan .ikonli-font-icon {
+    -fx-icon-color: #060A13;
+    -fx-fill: #060A13;
+}
+
 /* Secondary CTA Button: Ingest File */
 .btn-ingest {
     -fx-background-color: #2563EB;
@@ -83,6 +88,11 @@
     -fx-cursor: hand;
     -fx-border-color: transparent;
     -fx-effect: dropshadow(gaussian, rgba(37, 99, 235, 0.25), 6, 0, 0, 2);
+}
+
+.btn-ingest .ikonli-font-icon {
+    -fx-icon-color: #F8FAFC;
+    -fx-fill: #F8FAFC;
 }
 
 .btn-ingest:hover {
@@ -224,6 +234,37 @@
     -fx-background-color: #111C38;
     -fx-text-fill: #F8FAFC;
     -fx-border-color: #2D4480;
+}
+
+.tree-folder-label {
+    -fx-text-fill: inherit;
+    -fx-font-size: 13px;
+}
+
+.tree-folder-delete-btn {
+    -fx-background-color: transparent;
+    -fx-text-fill: #64748B;
+    -fx-font-size: 14px;
+    -fx-font-weight: bold;
+    -fx-padding: 0 4 0 4;
+    -fx-min-width: 18px;
+    -fx-min-height: 18px;
+    -fx-max-width: 18px;
+    -fx-max-height: 18px;
+    -fx-background-radius: 4px;
+    -fx-cursor: hand;
+    -fx-border-color: transparent;
+    -fx-alignment: center;
+}
+
+.tree-folder-delete-btn:hover {
+    -fx-background-color: rgba(239, 68, 68, 0.15);
+    -fx-text-fill: #EF4444;
+}
+
+.tree-folder-delete-btn:pressed {
+    -fx-background-color: rgba(220, 38, 38, 0.3);
+    -fx-text-fill: #F87171;
 }
 
 /* ==========================================================================
@@ -1066,4 +1107,155 @@
 .btn-export:disabled {
     -fx-opacity: 0.5;
 }
+
+.btn-export .ikonli-font-icon {
+    -fx-icon-color: #94A3B8;
+    -fx-fill: #94A3B8;
+}
+
+.btn-export:hover .ikonli-font-icon {
+    -fx-icon-color: #F8FAFC;
+    -fx-fill: #F8FAFC;
+}
+
+/* ==========================================================================
+   Onboarding Guide Modal & Header Trigger
+   ========================================================================== */
+.btn-guide {
+    -fx-background-color: #111C38;
+    -fx-border-color: #2D4480;
+    -fx-border-width: 1px;
+    -fx-border-radius: 8px;
+    -fx-background-radius: 8px;
+    -fx-text-fill: #F8FAFC;
+    -fx-font-weight: bold;
+    -fx-font-size: 13px;
+    -fx-padding: 8 14 8 14;
+    -fx-cursor: hand;
+}
+
+.btn-guide .ikonli-font-icon {
+    -fx-icon-color: #F8FAFC;
+    -fx-fill: #F8FAFC;
+}
+
+.btn-guide:hover {
+    -fx-background-color: #1D2D5B;
+    -fx-border-color: #3B82F6;
+}
+
+.btn-guide:pressed {
+    -fx-background-color: #0B1326;
+}
+
+.guide-modal-scrim {
+    -fx-background-color: rgba(6, 10, 19, 0.75);
+    -fx-alignment: center;
+}
+
+.guide-modal-panel {
+    -fx-background-color: #0B1326;
+    -fx-border-color: #1A284D;
+    -fx-border-width: 1;
+    -fx-border-radius: 12;
+    -fx-background-radius: 12;
+    -fx-padding: 20;
+    -fx-effect: dropshadow(gaussian, rgba(0, 0, 0, 0.5), 16, 0, 0, 4);
+}
+
+.guide-modal-header {
+    -fx-padding: 0 0 12 0;
+    -fx-border-color: #1A284D;
+    -fx-border-width: 0 0 1 0;
+}
+
+.guide-modal-title {
+    -fx-text-fill: #FACC15;
+    -fx-font-size: 18px;
+    -fx-font-weight: bold;
+}
+
+.guide-modal-close-btn {
+    -fx-background-color: transparent;
+    -fx-text-fill: #94A3B8;
+    -fx-font-size: 14px;
+    -fx-font-weight: bold;
+    -fx-cursor: hand;
+    -fx-padding: 4 8 4 8;
+    -fx-border-color: transparent;
+}
+
+.guide-modal-close-btn:hover {
+    -fx-text-fill: #F8FAFC;
+}
+
+.guide-modal-scroll-pane {
+    -fx-background-color: transparent;
+    -fx-background: transparent;
+    -fx-padding: 12 0 12 0;
+}
+
+.guide-modal-scroll-pane > .viewport {
+    -fx-background-color: transparent;
+}
+
+.guide-modal-content-container {
+    -fx-background-color: transparent;
+}
+
+.guide-section-title {
+    -fx-text-fill: #3B82F6;
+    -fx-font-size: 15px;
+    -fx-font-weight: bold;
+    -fx-padding: 8 0 4 0;
+}
+
+.guide-paragraph {
+    -fx-text-fill: #F8FAFC;
+    -fx-font-size: 13px;
+    -fx-wrap-text: true;
+}
+
+.guide-bullet-item {
+    -fx-text-fill: #94A3B8;
+    -fx-font-size: 13px;
+    -fx-wrap-text: true;
+    -fx-padding: 0 0 2 12;
+}
+
+.guide-snippet {
+    -fx-font-family: monospace;
+    -fx-text-fill: #FDE047;
+    -fx-background-color: #060A13;
+    -fx-border-color: #1A284D;
+    -fx-border-radius: 6;
+    -fx-background-radius: 6;
+    -fx-padding: 8 12 8 12;
+}
+
+.guide-modal-footer {
+    -fx-padding: 12 0 0 0;
+    -fx-border-color: #1A284D;
+    -fx-border-width: 1 0 0 0;
+}
+
+.guide-modal-action-btn {
+    -fx-background-color: #2563EB;
+    -fx-text-fill: #F8FAFC;
+    -fx-font-weight: bold;
+    -fx-font-size: 13px;
+    -fx-background-radius: 8px;
+    -fx-padding: 8 18 8 18;
+    -fx-cursor: hand;
+    -fx-border-color: transparent;
+}
+
+.guide-modal-action-btn:hover {
+    -fx-background-color: #3B82F6;
+}
+
+.guide-modal-action-btn:pressed {
+    -fx-background-color: #1D4ED8;
+}
+
 

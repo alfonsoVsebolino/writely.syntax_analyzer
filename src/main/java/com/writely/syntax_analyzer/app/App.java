@@ -5,6 +5,7 @@ import javafx.fxml.FXMLLoader;
 import javafx.scene.Parent;
 import javafx.scene.Scene;
 import javafx.stage.Stage;
+import javafx.scene.image.Image;
 
 import java.io.IOException;
 import java.net.URL;
@@ -38,6 +39,12 @@ public class App extends Application {
         }
 
         primaryStage.setTitle(APPLICATION_TITLE);
+        for (int size : new int[]{16, 32, 64}) {
+            Image icon = SvgImageLoader.load("/images/writely_runtime_logo.svg", size, size);
+            if (icon != null) {
+                primaryStage.getIcons().add(icon);
+            }
+        }
         primaryStage.setMinWidth(MIN_WINDOW_WIDTH);
         primaryStage.setMinHeight(MIN_WINDOW_HEIGHT);
         primaryStage.setScene(scene);

@@ -34,6 +34,8 @@ import javafx.fxml.FXML;
 import javafx.fxml.Initializable;
 import javafx.geometry.Pos;
 import javafx.scene.Node;
+import javafx.scene.image.Image;
+import javafx.scene.image.ImageView;
 import javafx.scene.control.Alert;
 import javafx.scene.control.Button;
 import javafx.scene.control.Label;
@@ -46,14 +48,18 @@ import javafx.scene.control.TableRow;
 import javafx.scene.control.TableView;
 import javafx.scene.control.TextArea;
 import javafx.scene.control.TextField;
+import javafx.scene.control.Tooltip;
 import javafx.scene.control.TreeCell;
 import javafx.scene.control.TreeItem;
 import javafx.scene.control.TreeView;
+import com.writely.syntax_analyzer.app.guide.GuideRenderer;
+import com.writely.syntax_analyzer.app.guide.OnboardingGuideContent;
 import javafx.scene.layout.BorderPane;
 import javafx.scene.layout.FlowPane;
 import javafx.scene.layout.HBox;
 import javafx.scene.layout.Priority;
 import javafx.scene.layout.Region;
+import javafx.scene.layout.StackPane;
 import javafx.scene.layout.VBox;
 import javafx.stage.FileChooser;
 import javafx.stage.Window;
@@ -63,6 +69,7 @@ import java.net.URL;
 import java.nio.file.Files;
 import java.nio.file.Path;
 import java.util.HashMap;
+import java.util.List;
 import java.util.Map;
 import java.util.Objects;
 import java.util.ResourceBundle;
@@ -106,7 +113,14 @@ public class WorkspaceController implements Initializable {
         "}\n";
 
     // FXML View Nodes
-    @FXML private BorderPane rootPane;
+    @FXML private StackPane rootPane;
+    @FXML private ImageView brandLogoImageView;
+    @FXML private Button guideButton;
+    @FXML private StackPane guideOverlay;
+    @FXML private Button guideCloseButton;
+    @FXML private Button guideGotItButton;
+    @FXML private ScrollPane guideContentScrollPane;
+    @FXML private VBox guideContentContainer;
     @FXML private SplitPane workspaceSplitPane;
     @FXML private Button deepScanButton;
     @FXML private Button ingestFileButton;
@@ -168,6 +182,7 @@ public class WorkspaceController implements Initializable {
     private SourceIngestionService ingestionService;
     private AnalysisOrchestrator orchestrator;
     private ReportExportService reportExportService;
+    private SettingsService settingsService;
 
     // State Properties
     private final ObjectProperty<Language> currentLanguage = new SimpleObjectProperty<>(Language.PYTHON);
@@ -185,20 +200,33 @@ public class WorkspaceController implements Initializable {
      * Default zero-arg constructor required by JavaFX FXMLLoader.
      */
     public WorkspaceController() {
-        this(new DefaultSourceIngestionService(), new AnalysisOrchestrator(), new ReportExportService());
+        this(new DefaultSourceIngestionService(), new AnalysisOrchestrator(), new ReportExportService(), new PreferencesSettingsService());
     }
 
     /**
      * Dependency injection constructor for testing and modular composition.
      */
     public WorkspaceController(SourceIngestionService ingestionService, AnalysisOrchestrator orchestrator) {
-        this(ingestionService, orchestrator, new ReportExportService());
+        this(ingestionService, orchestrator, new ReportExportService(), new PreferencesSettingsService());
     }
 
     public WorkspaceController(SourceIngestionService ingestionService, AnalysisOrchestrator orchestrator, ReportExportService reportExportService) {
+        this(ingestionService, orchestrator, reportExportService, new PreferencesSettingsService());
+    }
+
+    public WorkspaceController(SourceIngestionService ingestionService, AnalysisOrchestrator orchestrator, SettingsService settingsService) {
+        this(ingestionService, orchestrator, new ReportExportService(), settingsService);
+    }
+
+    public WorkspaceController(SourceIngestionService ingestionService, AnalysisOrchestrator orchestrator, ReportExportService reportExportService, SettingsService settingsService) {
         this.ingestionService = Objects.requireNonNull(ingestionService, "ingestionService must not be null");
         this.orchestrator = Objects.requireNonNull(orchestrator, "orchestrator must not be null");
         this.reportExportService = Objects.requireNonNull(reportExportService, "reportExportService must not be null");
+        this.settingsService = Objects.requireNonNull(settingsService, "settingsService must not be null");
+    }
+
+    public WorkspaceController(SettingsService settingsService) {
+        this(new DefaultSourceIngestionService(), new AnalysisOrchestrator(), new ReportExportService(), settingsService);
     }
 
     @Override
@@ -206,6 +234,7 @@ public class WorkspaceController implements Initializable {
         if (workspaceSplitPane != null) {
             workspaceSplitPane.setDividerPositions(0.20, 0.55);
         }
+        setupBrandLogo();
         setupStateBindings();
         setupLineGutter();
         setupFileExplorer();
@@ -213,6 +242,16 @@ public class WorkspaceController implements Initializable {
         setupTokensTable();
         setupAstTreeView();
         updateInitialStatus();
+        setupGuideModal();
+    }
+
+    private void setupBrandLogo() {
+        if (brandLogoImageView != null) {
+            Image logo = SvgImageLoader.load("/images/writely_runtime_logo.svg", 28, 28);
+            if (logo != null) {
+                brandLogoImageView.setImage(logo);
+            }
+        }
     }
 
     private void setupStateBindings() {
@@ -280,6 +319,7 @@ public class WorkspaceController implements Initializable {
         rootTreeItem.getChildren().add(projectAlpha);
         fileTreeView.setRoot(rootTreeItem);
         fileTreeView.setShowRoot(false);
+        fileTreeView.setCellFactory(tv -> new WorkspaceTreeCell(this));
 
         fileTreeView.getSelectionModel().selectedItemProperty().addListener((obs, oldVal, newVal) -> {
             if (newVal != null && newVal.isLeaf()) {
@@ -660,6 +700,66 @@ public class WorkspaceController implements Initializable {
     // =========================================================================
 
     @FXML
+    public void handleOpenGuide(ActionEvent event) {
+        openGuide();
+    }
+
+    @FXML
+    public void handleDismissGuide(ActionEvent event) {
+        dismissGuideAndMarkSeen();
+    }
+
+    public void openGuide() {
+        showGuide();
+    }
+
+    public void showGuide() {
+        if (guideContentContainer != null && guideContentContainer.getChildren().isEmpty()) {
+            guideContentContainer.getChildren().setAll(GuideRenderer.render(OnboardingGuideContent.getDocument()));
+        }
+        if (guideOverlay != null) {
+            guideOverlay.setVisible(true);
+            guideOverlay.setManaged(true);
+        }
+    }
+
+    public void hideGuide() {
+        if (guideOverlay != null) {
+            guideOverlay.setVisible(false);
+            guideOverlay.setManaged(false);
+        }
+    }
+
+    public void dismissGuideAndMarkSeen() {
+        hideGuide();
+        if (settingsService != null) {
+            settingsService.setOnboardingSeen(true);
+        }
+    }
+
+    public void decideToShowGuideOnLaunch() {
+        if (settingsService != null && !settingsService.isOnboardingSeen()) {
+            showGuide();
+        } else {
+            hideGuide();
+        }
+    }
+
+    public void decideGuideOnLaunch() {
+        decideToShowGuideOnLaunch();
+    }
+
+    private void setupGuideModal() {
+        if (guideOverlay != null) {
+            guideOverlay.setOnMouseClicked(javafx.scene.input.MouseEvent::consume);
+        }
+        if (guideContentContainer != null && guideContentContainer.getChildren().isEmpty()) {
+            guideContentContainer.getChildren().setAll(GuideRenderer.render(OnboardingGuideContent.getDocument()));
+        }
+        decideToShowGuideOnLaunch();
+    }
+
+    @FXML
     public void handleDeepScan(ActionEvent event) {
         runAnalysis();
     }
@@ -696,6 +796,125 @@ public class WorkspaceController implements Initializable {
                 footerStatusLabel.setText("Created Folder " + folderCount);
             }
         }
+    }
+
+    /**
+     * Determines whether the given TreeItem represents a folder.
+     */
+    public boolean isFolderItem(TreeItem<String> treeItem) {
+        if (treeItem == null || treeItem == rootTreeItem) {
+            return false;
+        }
+        if (treeItem.getParent() == null) {
+            return false;
+        }
+        if (treeItem.getParent() == rootTreeItem) {
+            return true;
+        }
+        if (treeItem.getValue() != null && treeItem.getValue().contains("📁")) {
+            return true;
+        }
+        return !treeItem.isLeaf();
+    }
+
+    /**
+     * Programmatically deletes a folder item from the file explorer, closing any open
+     * file tabs that were contained within it and updating the workspace status.
+     *
+     * @param folderItem the folder TreeItem to delete
+     */
+    public void deleteFolder(TreeItem<String> folderItem) {
+        if (folderItem == null || folderItem.getParent() == null) {
+            return;
+        }
+
+        String folderName = folderItem.getValue() != null ? folderItem.getValue() : "Folder";
+
+        // Check if active tab file belongs to this folder
+        String openFileName = currentFileName.get();
+        if (openFileName == null && activeTab != null) {
+            openFileName = activeTab.getText();
+        }
+        boolean affected = false;
+        if (openFileName != null && containsFile(folderItem, openFileName)) {
+            affected = true;
+        }
+        if (!affected && currentFilePath.get() != null && currentFilePath.get().getFileName() != null) {
+            affected = containsFile(folderItem, currentFilePath.get().getFileName().toString());
+        }
+
+        // Check if deleted folder or any child of it was selected before removal
+        TreeItem<String> selected = fileTreeView != null ? fileTreeView.getSelectionModel().getSelectedItem() : null;
+        boolean wasSelected = selected == folderItem || isDescendantOf(selected, folderItem);
+
+        // Clean up any ingested file records tracked under this folder
+        cleanUpFolderFiles(folderItem);
+
+        // Clear selection BEFORE removing from parent so JavaFX does not auto-select adjacent items
+        if (wasSelected && fileTreeView != null) {
+            fileTreeView.getSelectionModel().clearSelection();
+        }
+
+        // Remove from parent
+        folderItem.getParent().getChildren().remove(folderItem);
+
+        // If currently in a filtered tree view, also remove matching item from rootTreeItem
+        if (rootTreeItem != null && folderItem.getParent() != rootTreeItem) {
+            rootTreeItem.getChildren().removeIf(child -> Objects.equals(child.getValue(), folderItem.getValue()));
+        }
+
+        // If active tab file was inside deleted folder, close active tab
+        if (affected) {
+            handleActiveTabClosed();
+        }
+
+        // Update footer status
+        if (footerStatusLabel != null) {
+            footerStatusLabel.setText("Deleted folder: " + folderName);
+        }
+    }
+
+    private boolean containsFile(TreeItem<String> folder, String fileName) {
+        if (folder == null || fileName == null) {
+            return false;
+        }
+        for (TreeItem<String> child : folder.getChildren()) {
+            if (child.getValue() != null && (child.getValue().equals(fileName)
+                    || child.getValue().endsWith("/" + fileName)
+                    || child.getValue().endsWith("\\" + fileName))) {
+                return true;
+            }
+            if (containsFile(child, fileName)) {
+                return true;
+            }
+        }
+        return false;
+    }
+
+    private void cleanUpFolderFiles(TreeItem<String> folder) {
+        if (folder == null) {
+            return;
+        }
+        for (TreeItem<String> child : folder.getChildren()) {
+            if (child.getValue() != null) {
+                ingestedFilePaths.remove(child.getValue());
+            }
+            cleanUpFolderFiles(child);
+        }
+    }
+
+    private boolean isDescendantOf(TreeItem<String> node, TreeItem<String> ancestor) {
+        if (node == null || ancestor == null) {
+            return false;
+        }
+        TreeItem<String> current = node.getParent();
+        while (current != null) {
+            if (current == ancestor) {
+                return true;
+            }
+            current = current.getParent();
+        }
+        return false;
     }
 
     @FXML
@@ -1633,6 +1852,10 @@ public class WorkspaceController implements Initializable {
         return footerLanguageLabel;
     }
 
+    public ImageView getBrandLogoImageView() {
+        return brandLogoImageView;
+    }
+
     public Button getDeepScanButton() {
         return deepScanButton;
     }
@@ -1735,5 +1958,118 @@ public class WorkspaceController implements Initializable {
 
     public ScrollPane getInsightsScrollPane() {
         return insightsScrollPane;
+    }
+
+    public StackPane getRootPane() {
+        return rootPane;
+    }
+
+    public SettingsService getSettingsService() {
+        return settingsService;
+    }
+
+    public void setSettingsService(SettingsService settingsService) {
+        this.settingsService = Objects.requireNonNull(settingsService, "settingsService must not be null");
+    }
+
+    public Button getGuideButton() {
+        return guideButton;
+    }
+
+    public StackPane getGuideOverlay() {
+        return guideOverlay;
+    }
+
+    public Button getGuideCloseButton() {
+        return guideCloseButton;
+    }
+
+    public Button getGuideGotItButton() {
+        return guideGotItButton;
+    }
+
+    public ScrollPane getGuideContentScrollPane() {
+        return guideContentScrollPane;
+    }
+
+    public VBox getGuideContentContainer() {
+        return guideContentContainer;
+    }
+
+    public boolean isGuideVisible() {
+        return guideOverlay != null && guideOverlay.isVisible();
+    }
+
+    public List<String> getGuideSectionTitles() {
+        List<String> titles = new java.util.ArrayList<>();
+        if (guideContentContainer != null) {
+            collectSectionTitles(guideContentContainer, titles);
+        }
+        return titles;
+    }
+
+    private void collectSectionTitles(Node node, List<String> titles) {
+        if (node instanceof Label label && label.getStyleClass().contains("guide-section-title")) {
+            titles.add(label.getText());
+        }
+        if (node instanceof javafx.scene.Parent parent) {
+            for (Node child : parent.getChildrenUnmodifiable()) {
+                collectSectionTitles(child, titles);
+            }
+        }
+    }
+
+    /**
+     * Custom tree cell rendering folders with an inline delete "×" button and files with their language badge.
+     */
+    public static class WorkspaceTreeCell extends TreeCell<String> {
+        private final WorkspaceController controller;
+
+        public WorkspaceTreeCell(WorkspaceController controller) {
+            this.controller = controller;
+        }
+
+        public void setCellTreeItem(TreeItem<String> item) {
+            updateTreeItem(item);
+        }
+
+        @Override
+        public void updateItem(String item, boolean empty) {
+            super.updateItem(item, empty);
+            if (empty || item == null) {
+                setText(null);
+                setGraphic(null);
+                return;
+            }
+
+            TreeItem<String> treeItem = getTreeItem();
+            if (controller != null && controller.isFolderItem(treeItem)) {
+                setText(null);
+                HBox container = new HBox(6);
+                container.setAlignment(Pos.CENTER_LEFT);
+
+                Label nameLabel = new Label(item);
+                nameLabel.getStyleClass().add("tree-folder-label");
+
+                Region spacer = new Region();
+                HBox.setHgrow(spacer, Priority.ALWAYS);
+
+                Button deleteBtn = new Button("×");
+                deleteBtn.getStyleClass().add("tree-folder-delete-btn");
+                deleteBtn.setTooltip(new Tooltip("Delete folder"));
+                deleteBtn.setAccessibleText("Delete folder");
+                deleteBtn.setFocusTraversable(false);
+                deleteBtn.setOnAction(event -> {
+                    event.consume();
+                    controller.deleteFolder(treeItem);
+                });
+
+                container.getChildren().addAll(nameLabel, spacer, deleteBtn);
+                setGraphic(container);
+            } else {
+                setText(item);
+                setGraphic(treeItem != null ? treeItem.getGraphic() : null);
+            }
+        }
     }
 }
