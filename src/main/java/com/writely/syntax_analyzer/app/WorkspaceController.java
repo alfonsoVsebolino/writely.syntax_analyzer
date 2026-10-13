@@ -34,6 +34,8 @@ import javafx.fxml.FXML;
 import javafx.fxml.Initializable;
 import javafx.geometry.Pos;
 import javafx.scene.Node;
+import javafx.scene.image.Image;
+import javafx.scene.image.ImageView;
 import javafx.scene.control.Alert;
 import javafx.scene.control.Button;
 import javafx.scene.control.Label;
@@ -112,6 +114,7 @@ public class WorkspaceController implements Initializable {
 
     // FXML View Nodes
     @FXML private StackPane rootPane;
+    @FXML private ImageView brandLogoImageView;
     @FXML private Button guideButton;
     @FXML private StackPane guideOverlay;
     @FXML private Button guideCloseButton;
@@ -231,6 +234,7 @@ public class WorkspaceController implements Initializable {
         if (workspaceSplitPane != null) {
             workspaceSplitPane.setDividerPositions(0.20, 0.55);
         }
+        setupBrandLogo();
         setupStateBindings();
         setupLineGutter();
         setupFileExplorer();
@@ -239,6 +243,15 @@ public class WorkspaceController implements Initializable {
         setupAstTreeView();
         updateInitialStatus();
         setupGuideModal();
+    }
+
+    private void setupBrandLogo() {
+        if (brandLogoImageView != null) {
+            Image logo = SvgImageLoader.load("/images/writely_runtime_logo.svg", 28, 28);
+            if (logo != null) {
+                brandLogoImageView.setImage(logo);
+            }
+        }
     }
 
     private void setupStateBindings() {
@@ -1837,6 +1850,10 @@ public class WorkspaceController implements Initializable {
 
     public Label getFooterLanguageLabel() {
         return footerLanguageLabel;
+    }
+
+    public ImageView getBrandLogoImageView() {
+        return brandLogoImageView;
     }
 
     public Button getDeepScanButton() {

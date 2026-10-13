@@ -40,11 +40,7 @@
     <top>
         <HBox alignment="CENTER_LEFT" spacing="12" styleClass="header-bar">
             <!-- logo placement -->
-            <ImageView fitHeight="28.0" fitWidth="28.0" preserveRatio="true">
-                <image>
-                    <Image url="@../images/test_emblem_no_shadow_crown.png" />
-                </image>
-            </ImageView>
+            <ImageView fx:id="brandLogoImageView" fitHeight="28.0" fitWidth="28.0" preserveRatio="true" />
             <Label styleClass="brand-logo" text="writely" />
             <Button fx:id="guideButton"
                     mnemonicParsing="false"

@@ -25,6 +25,7 @@ javafx {
 }
 
 dependencies {
+    implementation("com.github.weisj:jsvg:1.6.1")
     implementation("org.kordamp.ikonli:ikonli-javafx:12.3.1")
     implementation("org.kordamp.ikonli:ikonli-feather-pack:12.3.1")
 

@@ -95,6 +95,9 @@ class WorkspaceControllerTest {
 
                 WorkspaceController controller = loader.getController();
                 assertNotNull(controller, "Controller must be injected");
+                assertNotNull(controller.getBrandLogoImageView());
+                assertNotNull(controller.getBrandLogoImageView().getImage());
+                assertFalse(controller.getBrandLogoImageView().getImage().isError());
 
                 assertEquals("filename.py", controller.getCurrentFileName());
                 assertEquals(Language.PYTHON, controller.getCurrentLanguage());
