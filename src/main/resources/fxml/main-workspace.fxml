@@ -12,6 +12,8 @@
 <?import javafx.scene.control.TextArea?>
 <?import javafx.scene.control.TextField?>
 <?import javafx.scene.control.TreeView?>
+<?import javafx.scene.image.Image?>
+<?import javafx.scene.image.ImageView?>
 <?import javafx.scene.layout.BorderPane?>
 <?import javafx.scene.layout.ColumnConstraints?>
 <?import javafx.scene.layout.FlowPane?>
@@ -37,6 +39,12 @@
     <!-- Top Header Bar -->
     <top>
         <HBox alignment="CENTER_LEFT" spacing="12" styleClass="header-bar">
+            <!-- logo placement -->
+            <ImageView fitHeight="28.0" fitWidth="28.0" preserveRatio="true">
+                <image>
+                    <Image url="@../images/test_emblem_no_shadow_crown.png" />
+                </image>
+            </ImageView>
             <Label styleClass="brand-logo" text="writely" />
             <Button fx:id="guideButton"
                     mnemonicParsing="false"

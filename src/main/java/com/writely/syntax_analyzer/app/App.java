@@ -5,6 +5,7 @@ import javafx.fxml.FXMLLoader;
 import javafx.scene.Parent;
 import javafx.scene.Scene;
 import javafx.stage.Stage;
+import javafx.scene.image.Image;
 
 import java.io.IOException;
 import java.net.URL;
@@ -38,6 +39,11 @@ public class App extends Application {
         }
 
         primaryStage.setTitle(APPLICATION_TITLE);
+         primaryStage.getIcons().addAll(
+                new Image(getClass().getResourceAsStream("/images/writely_logo.jpg"), 16, 16, true, true),
+                new Image(getClass().getResourceAsStream("/images/writely_logo.jpg"), 32, 32, true, true),
+                new Image(getClass().getResourceAsStream("/images/writely_logo.jpg"), 64, 64, true, true)
+            );
         primaryStage.setMinWidth(MIN_WINDOW_WIDTH);
         primaryStage.setMinHeight(MIN_WINDOW_HEIGHT);
         primaryStage.setScene(scene);
